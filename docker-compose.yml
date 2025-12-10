@@ -9,17 +9,16 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      # Maps local folder to container for Hot-Reloading during development
       - ./backend:/app
     environment:
-      # User: clearway
-      # Pass: clearway_dev_password
-      # DB: clearway 
-      DATABASE_URL: postgresql://clearway:clearway_dev_password@host.docker.internal:5432/clearway
+      # We construct the connection string dynamically from .env variables
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
     extra_hosts:
-      # Necessary for 'host.docker.internal' to work correctly on Linux environments
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
+    # Load env variables specifically for this service (optional but good practice)
+    env_file:
+      - .env
 
   # ---------------------------------------------------------------------------
   # FRONTEND SERVICE (React + Vite)
@@ -31,12 +30,11 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Sync source code for Hot-Reloading
       - ./frontend:/app
-      # Crucial: Prevent local node_modules from overwriting container's installed modules
       - /app/node_modules
     environment:
-      # Since React runs in the browser, it accesses the API via localhost
-      VITE_API_URL: http://localhost:8000
+      VITE_API_URL: ${VITE_API_URL}
     depends_on:
       - api
+    env_file:
+      - .env
