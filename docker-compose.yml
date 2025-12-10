@@ -12,10 +12,10 @@ services:
       # Maps local folder to container for Hot-Reloading during development
       - ./backend:/app
     environment:
-      # Connection string to the PostgreSQL database running in 'clearway-infra'.
-      # 'host.docker.internal' allows the container to access ports on your host machine.
-      # Ensure credentials match your clearway-infra setup.
-      DATABASE_URL: postgresql://admin:password@host.docker.internal:5432/clearway_db
+      # User: clearway
+      # Pass: clearway_dev_password
+      # DB: clearway 
+      DATABASE_URL: postgresql://clearway:clearway_dev_password@host.docker.internal:5432/clearway
     extra_hosts:
       # Necessary for 'host.docker.internal' to work correctly on Linux environments
       - "host.docker.internal:host-gateway"
