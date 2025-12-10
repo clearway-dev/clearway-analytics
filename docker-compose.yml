@@ -1,0 +1,42 @@
+services:
+  # ---------------------------------------------------------------------------
+  # BACKEND SERVICE (FastAPI)
+  # ---------------------------------------------------------------------------
+  api:
+    build: 
+      context: ./backend
+    container_name: clearway-analytics-api
+    ports:
+      - "8000:8000"
+    volumes:
+      # Maps local folder to container for Hot-Reloading during development
+      - ./backend:/app
+    environment:
+      # Connection string to the PostgreSQL database running in 'clearway-infra'.
+      # 'host.docker.internal' allows the container to access ports on your host machine.
+      # Ensure credentials match your clearway-infra setup.
+      DATABASE_URL: postgresql://admin:password@host.docker.internal:5432/clearway_db
+    extra_hosts:
+      # Necessary for 'host.docker.internal' to work correctly on Linux environments
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # FRONTEND SERVICE (React + Vite)
+  # ---------------------------------------------------------------------------
+  web:
+    build: 
+      context: ./frontend
+    container_name: clearway-analytics-web
+    ports:
+      - "3000:3000"
+    volumes:
+      # Sync source code for Hot-Reloading
+      - ./frontend:/app
+      # Crucial: Prevent local node_modules from overwriting container's installed modules
+      - /app/node_modules
+    environment:
+      # Since React runs in the browser, it accesses the API via localhost
+      VITE_API_URL: http://localhost:8000
+    depends_on:
+      - api
