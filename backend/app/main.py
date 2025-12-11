@@ -1,8 +1,11 @@
-from sqlalchemy import select
+from app.models import RoadSegment, SegmentStatistics
+from sqlalchemy import select, func
 from app.database import get_db
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
+from datetime import date
+import json
 
 # Initialize the FastAPI application with metadata
 app = FastAPI(
@@ -61,4 +64,50 @@ async def get_status(db: Session = Depends(get_db)):
         return {
             "database": "error", 
             "detail": str(e)
+    }
+
+@app.get("/api/map/segments")
+async def get_road_segments(
+    target_date: date = date.today(), 
+    db: Session = Depends(get_db)
+):
+    """
+    Returns a GeoJSON FeatureCollection of road segments with statistics.
+    Joins 'RoadSegment' (geometry) with 'SegmentStatistics' (data) for a specific date.
+    """
+    results = db.query(
+        RoadSegment.id,
+        RoadSegment.name,
+        SegmentStatistics.avg_width,
+        SegmentStatistics.min_width,
+        SegmentStatistics.max_width,
+        SegmentStatistics.measurements_count,
+        func.ST_AsGeoJSON(RoadSegment.geom).label("geometry")
+    ).join(
+        SegmentStatistics, RoadSegment.id == SegmentStatistics.segment_id
+    ).filter(
+        SegmentStatistics.stat_date == target_date
+    ).all()
+
+    features = []
+    for row in results:
+        status = "ok" if row.avg_width >= 3.0 else "narrow"
+
+        features.append({
+            "type": "Feature",
+            "geometry": json.loads(row.geometry),
+            "properties": {
+                "segment_id": str(row.id),
+                "name": row.name or "Unknown Road",
+                "avg_width": row.avg_width,
+                "min_width": row.min_width,
+                "max_width": row.max_width,
+                "measurements_count": row.measurements_count,
+                "status": status
+            }
+        })
+    
+    return {
+        "type": "FeatureCollection",
+        "features": features
     }
