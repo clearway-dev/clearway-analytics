@@ -1,8 +1,9 @@
-from sqlalchemy import Column, String, DateTime, func
+from sqlalchemy import Column, String, DateTime, func, Date, ForeignKey, Float, Integer
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 from geoalchemy2 import Geometry
 import uuid
+from sqlalchemy.orm import relationship
 
 
 class RoadSegment(Base):
@@ -20,3 +21,21 @@ class RoadSegment(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class SegmentStatistics(Base):
+    __tablename__ = "segment_statistics"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+
+    segment_id = Column(UUID(as_uuid=True), ForeignKey("road_segments.id"), nullable=False)
+
+    stat_date = Column(Date, nullable=False)
+
+    avg_width= Column(Float)
+    min_width= Column(Float)
+    max_width= Column(Float)
+    measurements_count = Column(Integer, default=0)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    segment = relationship("RoadSegment")    
