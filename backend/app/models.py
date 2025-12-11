@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, DateTime, func, Date, ForeignKey, Float, Integer
+from sqlalchemy import Column, String, DateTime, func, Date, ForeignKey, Float, Integer, BigInteger
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 from geoalchemy2 import Geometry
@@ -21,6 +21,18 @@ class RoadSegment(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+class CleanedMeasurement(Base):
+    __tablename__ = "cleaned_measurements"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+
+    cleaned_width = Column(Float, nullable=False)
+    quality_score = Column(Float)
+
+    geom = Column(Geometry("POINT", srid=4326), nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 class SegmentStatistics(Base):
     __tablename__ = "segment_statistics"

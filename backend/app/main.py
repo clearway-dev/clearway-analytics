@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from datetime import date
 import json
+from app.services.analytics_service import AnalyticsService
 
 # Initialize the FastAPI application with metadata
 app = FastAPI(
@@ -111,3 +112,17 @@ async def get_road_segments(
         "type": "FeatureCollection",
         "features": features
     }
+
+@app.get("/api/stats/segment/{segment_id}/histogram")
+async def get_segment_histogram(
+    segment_id: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Returns histogram data (width distribution) for a specific road segment.
+    Used for charts in the frontend detail panel.
+    """   
+    service = AnalyticsService(db)
+    histogram_data = service.get_segment_histogram(segment_id)
+
+    return histogram_data
