@@ -1,34 +1,24 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import MapComponent from './components/MapComponent';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div style={{ height: "100vh", width: "100vw", display: "flex", flexDirection: "column" }}>
+      {/* Horní lišta (Header) */}
+      <header style={{ 
+          padding: "1rem", 
+          background: "#2c3e50", 
+          color: "white", 
+          boxShadow: "0 2px 5px rgba(0,0,0,0.2)",
+          zIndex: 1000 
+      }}>
+        <h1 style={{ margin: 0, fontSize: "1.5rem" }}>ClearWay Analytics 🚛</h1>
+      </header>
+
+      {/* Hlavní obsah s mapou */}
+      <div style={{ flex: 1, position: "relative" }}>
+        <MapComponent />
       </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
+    </div>
   )
 }
 
