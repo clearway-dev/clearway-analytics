@@ -1,19 +1,37 @@
-import MapComponent from './components/MapComponent';
+import BottomSheet from "./components/BottomSheet";
+import FloatingPanel from "./components/FloatingPanel";
+import MapComponent from "./components/MapComponent";
+import { useState } from "react";
 
-function App() {
-  return (
-    <div className="h-screen w-screen flex flex-col">
-      {/* Horní lišta (Header) */}
-      <header className="p-4 bg-slate-800 text-white shadow-lg z-[1000]">
-        <h1 className="m-0 text-2xl font-semibold">ClearWay Analytics 🚛</h1>
-      </header>
-
-      {/* Hlavní obsah s mapou */}
-      <div className="flex-1 relative">
-        <MapComponent />
-      </div>
-    </div>
-  )
+interface SegmentData {
+  segment_id: string;
+  name: string;
+  avg_width: number;
+  measurements_count: number;
+  status: "ok" | "narrow";
 }
 
-export default App
+function App() {
+  const [selectedSegment, setSelectedSegment] = useState<SegmentData | null>(
+    null
+  );
+  return (
+    <div className="relative h-screen w-screen overflow-hidden bg-gray-100">
+      {/* 1. Map Layer (Background) */}
+      <div className="absolute inset-0 z-0">
+        <MapComponent onSegmentSelect={setSelectedSegment} />
+      </div>
+
+      {/* 2. Floating Control Panel (Top Left) */}
+      <FloatingPanel />
+
+      {/* 3. Bottom Sheet (Details) */}
+      <BottomSheet
+        data={selectedSegment}
+        onClose={() => setSelectedSegment(null)}
+      />
+    </div>
+  );
+}
+
+export default App;

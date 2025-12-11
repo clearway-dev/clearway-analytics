@@ -12,9 +12,13 @@ interface SegmentProperties {
     status: 'ok' | 'narrow';
 }
 
+interface MapComponentProps {
+    onSegmentSelect: (data: SegmentProperties | null) => void;
+}
+
 type SegmentFeature = Feature<Geometry, SegmentProperties>;
 
-export default function MapComponent() {
+export default function MapComponent({ onSegmentSelect }: MapComponentProps) {
     const position: LatLngTuple = [49.7384, 13.3736];
 
     const [geoJsonData, setGeoJsonData] = useState<GeoJsonObject | null>(null);
@@ -46,16 +50,23 @@ export default function MapComponent() {
     };
 
     const onEachFeature = (feature: SegmentFeature, layer: Layer) => {
-        if (feature.properties) {
-            const { name, avg_width, measurements_count } = feature.properties;
-            layer.bindPopup(`
-                <div class="text-sm">
-                    <strong class="text-base font-semibold">${name}</strong><br/>
-                    <span class="text-gray-700">Average Width: ${avg_width.toFixed(2)} m</span><br/>
-                    <span class="text-gray-700">Measurements: ${measurements_count}</span>
-                </div>
-            `);
-        }
+        // if (feature.properties) {
+        //     const { name, avg_width, measurements_count } = feature.properties;
+        //     layer.bindPopup(`
+        //         <div class="text-sm">
+        //             <strong class="text-base font-semibold">${name}</strong><br/>
+        //             <span class="text-gray-700">Average Width: ${avg_width.toFixed(2)} m</span><br/>
+        //             <span class="text-gray-700">Measurements: ${measurements_count}</span>
+        //         </div>
+        //     `);
+        // }
+        layer.on({
+            click: () => {
+                if (feature.properties) {
+                    onSegmentSelect(feature.properties);
+                }
+            }
+        });
     };
 
     return (
