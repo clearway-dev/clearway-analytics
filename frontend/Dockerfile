@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm ci --prefer-offline --no-audit
 
 # Copy the rest of the application code
 COPY . .
@@ -18,6 +18,6 @@ COPY . .
 # Expose port 3000 for the Vite development server
 EXPOSE 3000
 
-# Start the development server
+# Start the development server with install check
 # --host ensures it listens on all network interfaces inside the container
-CMD ["npm", "run", "dev", "--", "--host"]
+CMD ["sh", "-c", "npm install && npm run dev -- --host"]

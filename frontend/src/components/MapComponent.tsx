@@ -49,9 +49,11 @@ export default function MapComponent() {
         if (feature.properties) {
             const { name, avg_width, measurements_count } = feature.properties;
             layer.bindPopup(`
-                <strong>${name}</strong><br/>
-                Average Width: ${avg_width.toFixed(2)} cm<br/>
-                Measurement Count: ${measurements_count}
+                <div class="text-sm">
+                    <strong class="text-base font-semibold">${name}</strong><br/>
+                    <span class="text-gray-700">Average Width: ${avg_width.toFixed(2)} m</span><br/>
+                    <span class="text-gray-700">Measurements: ${measurements_count}</span>
+                </div>
             `);
         }
     };
@@ -60,7 +62,7 @@ export default function MapComponent() {
         <MapContainer
             center={position}
             zoom={13}
-            style={{ height: "100vh", width: "100%" }}
+            className="h-full w-full"
         >
             <TileLayer
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
