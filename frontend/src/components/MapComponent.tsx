@@ -15,31 +15,38 @@ interface SegmentData {
 interface MapComponentProps {
   onSegmentSelect: (data: SegmentData | null) => void;
   vehicleWidth: number;
+  selectedDate: string;
 }
 
 type SegmentFeature = Feature<Geometry, SegmentData>;
 
-export default function MapComponent({ onSegmentSelect, vehicleWidth }: MapComponentProps) {
+export default function MapComponent({
+  onSegmentSelect,
+  vehicleWidth,
+  selectedDate,
+}: MapComponentProps) {
   const position: LatLngTuple = [49.7384, 13.3736];
 
   const [geoJsonData, setGeoJsonData] = useState<GeoJsonObject | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedDate, setLoadedDate] = useState<string | null>(null);
+
+  const loading = selectedDate !== loadedDate;
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
-    fetch(`${apiUrl}/api/map/segments`)
+    fetch(`${apiUrl}/api/map/segments?target_date=${selectedDate}`)
       .then((res) => res.json())
       .then((data) => {
-        console.log("Data loaded:", data);
+        console.log(`Data loaded for ${selectedDate}:`, data);
         setGeoJsonData(data);
-        setLoading(false);
+        setLoadedDate(selectedDate);
       })
       .catch((err) => {
         console.error("Error fetching map data:", err);
-        setLoading(false);
+        setLoadedDate(selectedDate); 
       });
-  }, []);
+  }, [selectedDate]);
 
   const styleFeature = (feature?: SegmentFeature) => {
     if (!feature || !feature.properties) {
@@ -67,14 +74,19 @@ export default function MapComponent({ onSegmentSelect, vehicleWidth }: MapCompo
   };
 
   return (
-    <MapContainer center={position} zoom={13} className="h-full w-full">
+    <MapContainer
+      center={position}
+      zoom={13}
+      className="h-full w-full"
+      zoomControl={false}
+    >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       {!loading && geoJsonData && (
         <GeoJSON
-          key={`geo-data-${vehicleWidth}`}
+          key={`geo-data-${vehicleWidth}-${selectedDate}`}
           data={geoJsonData}
           style={styleFeature}
           onEachFeature={onEachFeature}
