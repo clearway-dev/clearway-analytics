@@ -14,11 +14,12 @@ interface SegmentData {
 
 interface MapComponentProps {
   onSegmentSelect: (data: SegmentData | null) => void;
+  vehicleWidth: number;
 }
 
 type SegmentFeature = Feature<Geometry, SegmentData>;
 
-export default function MapComponent({ onSegmentSelect }: MapComponentProps) {
+export default function MapComponent({ onSegmentSelect, vehicleWidth }: MapComponentProps) {
   const position: LatLngTuple = [49.7384, 13.3736];
 
   const [geoJsonData, setGeoJsonData] = useState<GeoJsonObject | null>(null);
@@ -41,9 +42,15 @@ export default function MapComponent({ onSegmentSelect }: MapComponentProps) {
   }, []);
 
   const styleFeature = (feature?: SegmentFeature) => {
-    const status = feature?.properties?.status;
+    if (!feature || !feature.properties) {
+      return {};
+    }
+
+    const avgWidth = feature.properties.avg_width;
+    const isPassable = avgWidth >= vehicleWidth + 0.5;
+
     return {
-      color: status === "ok" ? "#2ecc71" : "#e74c3c",
+      color: isPassable ? "#2ecc71" : "#e74c3c",
       weight: 4,
       opacity: 0.9,
     };
@@ -67,6 +74,7 @@ export default function MapComponent({ onSegmentSelect }: MapComponentProps) {
       />
       {!loading && geoJsonData && (
         <GeoJSON
+          key={`geo-data-${vehicleWidth}`}
           data={geoJsonData}
           style={styleFeature}
           onEachFeature={onEachFeature}

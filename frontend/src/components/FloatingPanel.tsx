@@ -1,4 +1,9 @@
-export default function FloatingPanel() {
+interface FloatingPanelProps {
+  vehicleWidth: number;
+  setVehicleWidth: (width: number) => void;
+}
+
+export default function FloatingPanel({ vehicleWidth, setVehicleWidth }: FloatingPanelProps) {
   return (
     <div className="absolute top-4 left-4 z-[1000] bg-white p-4 rounded-xl shadow-lg w-80 max-w-[90vw] border border-gray-100">
       
@@ -23,18 +28,20 @@ export default function FloatingPanel() {
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
             Vehicle Width
             </label>
-            <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">2.5 m</span>
+            <span className="text-sm font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{vehicleWidth} cm</span>
         </div>
         <input 
             type="range" 
-            min="2.0" 
-            max="3.5" 
-            step="0.1" 
+            min="150" 
+            max="500" 
+            step="10" 
+            value={vehicleWidth} 
+            onChange={(e) => setVehicleWidth(parseFloat(e.target.value))}
             className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
         />
         <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-            <span>2.0m</span>
-            <span>3.5m</span>
+            <span>1.5 m</span>
+            <span>5.0 m</span>
         </div>
       </div>
 
