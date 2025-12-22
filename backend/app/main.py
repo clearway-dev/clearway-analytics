@@ -8,6 +8,7 @@ from datetime import date
 import json
 from app.services.analytics_service import AnalyticsService
 from app.services.dashboard_service import DashboardService
+from app.services.ml_service import MLService
 
 # Initialize the FastAPI application with metadata
 app = FastAPI(
@@ -176,3 +177,34 @@ async def get_coverage_map(db: Session = Depends(get_db)):
     """
     service = DashboardService(db)
     return service.get_coverage_map_data()
+
+@app.get("/api/analytics/obstacles")
+async def get_obstacles(
+    target_date: date = date.today(),
+    db: Session = Depends(get_db)
+):
+    """
+    Detects physical obstacles using DBSCAN clustering on narrow measurements.
+    Returns GeoJSON FeatureCollection of obstacle centroids.
+    """
+    ml_service = MLService(db)
+    obstacles = ml_service.detect_obstacles(target_date)
+
+    features = []
+    for obs in obstacles:
+        features.append({
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [obs["lon"], obs["lat"]] # GeoJSON is [lon, lat]
+            },
+            "properties": {
+                "severity": obs["severity"],
+                "cluster_size": obs["cluster_size"]
+            }
+        })
+
+    return {
+        "type": "FeatureCollection",
+        "features": features
+    }

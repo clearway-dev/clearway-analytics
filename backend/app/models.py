@@ -26,7 +26,8 @@ class CleanedMeasurement(Base):
     __tablename__ = "cleaned_measurements"
 
     id = Column(BigInteger, primary_key=True, index=True)
-
+    raw_measurement_id = Column(BigInteger, nullable=True) # It seems to be nullable based on typical flows, but the error says NOT NULL constraint violation. Let's make it explicitly defined to handle it. Actually the error says "violates not-null constraint", so we must provide it.
+    
     cleaned_width = Column(Float, nullable=False)
     quality_score = Column(Float)
 
