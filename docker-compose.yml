@@ -1,0 +1,40 @@
+services:
+  # ---------------------------------------------------------------------------
+  # BACKEND SERVICE (FastAPI)
+  # ---------------------------------------------------------------------------
+  api:
+    build: 
+      context: ./backend
+    container_name: clearway-analytics-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      # We construct the connection string dynamically from .env variables
+      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+    # Load env variables specifically for this service (optional but good practice)
+    env_file:
+      - .env
+
+  # ---------------------------------------------------------------------------
+  # FRONTEND SERVICE (React + Vite)
+  # ---------------------------------------------------------------------------
+  web:
+    build: 
+      context: ./frontend
+    container_name: clearway-analytics-web
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      VITE_API_URL: ${VITE_API_URL}
+    depends_on:
+      - api
+    env_file:
+      - .env
