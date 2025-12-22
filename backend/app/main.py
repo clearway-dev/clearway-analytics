@@ -1,5 +1,5 @@
 from app.models import RoadSegment, SegmentStatistics
-from sqlalchemy import select, func
+from sqlalchemy import select, func, cast, String
 from app.database import get_db
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
@@ -126,3 +126,36 @@ async def get_segment_histogram(
     histogram_data = service.get_segment_histogram(segment_id)
 
     return histogram_data
+
+@app.get("/api/roads/search")
+async def search_roads(q: str, db: Session = Depends(get_db)):
+    """
+    Search for road segments by name (fulltext-like).
+    Returns top 10 unique street names with their combined centroid coordinates.
+    """
+    if not q:
+        return []
+
+    # Search for segments where name contains 'q' (case-insensitive)
+    # Group by name to avoid duplicates
+    # Use ST_Collect to merge geometries of all segments with the same name, then find centroid
+    results = db.query(
+        func.max(cast(RoadSegment.id, String)).label("id"),
+        RoadSegment.name,
+        func.ST_Y(func.ST_Centroid(func.ST_Collect(RoadSegment.geom))).label("lat"),
+        func.ST_X(func.ST_Centroid(func.ST_Collect(RoadSegment.geom))).label("lon")
+    ).filter(
+        RoadSegment.name.ilike(f"%{q}%")
+    ).group_by(
+        RoadSegment.name
+    ).limit(10).all()
+
+    return [
+        {
+            "id": str(row.id),
+            "name": row.name,
+            "center_lat": row.lat,
+            "center_lon": row.lon
+        }
+        for row in results
+    ]

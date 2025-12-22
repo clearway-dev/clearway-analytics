@@ -1,6 +1,6 @@
 import type { LatLngTuple } from "leaflet";
 import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
+import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import type { Layer } from "leaflet";
 
@@ -16,14 +16,30 @@ interface MapComponentProps {
   onSegmentSelect: (data: SegmentData | null) => void;
   vehicleWidth: number;
   selectedDate: string;
+  flyToTarget: LatLngTuple | null;
 }
 
 type SegmentFeature = Feature<Geometry, SegmentData>;
+
+function MapController({ target }: { target: LatLngTuple | null }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (target) {
+      map.flyTo(target, 16, {
+        duration: 1.5
+      });
+    }
+  }, [target, map]);
+
+  return null;
+}
 
 export default function MapComponent({
   onSegmentSelect,
   vehicleWidth,
   selectedDate,
+  flyToTarget,
 }: MapComponentProps) {
   const position: LatLngTuple = [49.7384, 13.3736];
 
@@ -80,6 +96,7 @@ export default function MapComponent({
       className="h-full w-full"
       zoomControl={false}
     >
+      <MapController target={flyToTarget} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
