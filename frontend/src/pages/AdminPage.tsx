@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Activity, Map, Ruler, BarChart3 } from "lucide-react";
+import CoverageMap from "../components/CoverageMap";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -59,7 +60,7 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="p-8 flex justify-center items-center h-full">
+      <div className="flex justify-center items-center h-screen bg-gray-50">
         <span className="text-gray-500">Loading dashboard data...</span>
       </div>
     );
@@ -75,163 +76,170 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="p-8 bg-gray-50/50 min-h-screen">
-      <div className="flex items-center justify-between space-y-2 mb-8">
-        <h2 className="text-3xl font-bold tracking-tight text-gray-900">Dashboard</h2>
+    <div className="h-screen w-screen overflow-hidden bg-gray-50/50 flex flex-col">
+      {/* HEADER */}
+      <div className="flex-none p-6 pb-2">
+        <h2 className="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h2>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
-        {/* Card 1: Total Length */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Total Network Length
-            </CardTitle>
-            <Ruler className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.total_length_km.toLocaleString()} km</div>
-            <p className="text-xs text-gray-500 mt-1">
-              Mapped road infrastructure
-            </p>
-          </CardContent>
-        </Card>
+      {/* MAIN CONTENT - SCROLLABLE IF NEEDED BUT COMPACT */}
+      <div className="flex-1 p-6 pt-2 overflow-y-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 h-full">
+          
+          {/* LEFT COLUMN: KPIs + CHARTS (Span 8) */}
+          <div className="lg:col-span-8 flex flex-col gap-4">
+            
+            {/* 1. KPIs ROW */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {/* Card 1 */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                  <CardTitle className="text-xs font-medium text-gray-500">
+                    Network Length
+                  </CardTitle>
+                  <Ruler className="h-4 w-4 text-gray-400" />
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-xl font-bold text-gray-900">{stats.total_length_km.toLocaleString()} km</div>
+                </CardContent>
+              </Card>
 
-        {/* Card 2: Total Measurements */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Total Measurements
-            </CardTitle>
-            <Activity className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.total_measurements.toLocaleString()}</div>
-            <p className="text-xs text-gray-500 mt-1">
-              Individual data points
-            </p>
-          </CardContent>
-        </Card>
+              {/* Card 2 */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                  <CardTitle className="text-xs font-medium text-gray-500">
+                    Measurements
+                  </CardTitle>
+                  <Activity className="h-4 w-4 text-gray-400" />
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-xl font-bold text-gray-900">{stats.total_measurements.toLocaleString()}</div>
+                </CardContent>
+              </Card>
 
-        {/* Card 3: Measured Segments */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Analyzed Segments
-            </CardTitle>
-            <BarChart3 className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.measured_segments_count.toLocaleString()}</div>
-            <p className="text-xs text-gray-500 mt-1">
-              Segments with statistics
-            </p>
-          </CardContent>
-        </Card>
+              {/* Card 3 */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                  <CardTitle className="text-xs font-medium text-gray-500">
+                    Segments
+                  </CardTitle>
+                  <BarChart3 className="h-4 w-4 text-gray-400" />
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-xl font-bold text-gray-900">{stats.measured_segments_count.toLocaleString()}</div>
+                </CardContent>
+              </Card>
 
-        {/* Card 4: Total Segments */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-500">
-              Total Road Segments
-            </CardTitle>
-            <Map className="h-4 w-4 text-gray-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-900">{stats.total_segments.toLocaleString()}</div>
-            <p className="text-xs text-gray-500 mt-1">
-              Database records
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* CHARTS SECTION */}
-      <div className="grid grid-cols-1 lg:grid-cols-7 gap-4">
-        {/* LEFT CHART: Activity */}
-        <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>Measurement Activity (Last 7 Days)</CardTitle>
-          </CardHeader>
-          <CardContent className="pl-0">
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={stats.activity_chart}
-                  margin={{
-                    top: 10,
-                    right: 30,
-                    left: 0,
-                    bottom: 0,
-                  }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { weekday: 'short' })}
-                    style={{ fontSize: '12px', fill: '#888' }}
-                  />
-                  <YAxis
-                     tickLine={false}
-                     axisLine={false}
-                     style={{ fontSize: '12px', fill: '#888' }}
-                  />
-                  <Tooltip />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    stroke="#3b82f6"
-                    fill="#3b82f6"
-                    fillOpacity={0.2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+              {/* Card 4 */}
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
+                  <CardTitle className="text-xs font-medium text-gray-500">
+                    Total Roads
+                  </CardTitle>
+                  <Map className="h-4 w-4 text-gray-400" />
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <div className="text-xl font-bold text-gray-900">{stats.total_segments.toLocaleString()}</div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
 
-        {/* RIGHT CHART: Quality Pie */}
-        <Card className="lg:col-span-3">
-          <CardHeader>
-            <CardTitle>Infrastructure Health</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={stats.quality_chart}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    stroke="none"
-                    paddingAngle={
-                      stats.quality_chart.filter((d) => d.value > 0).length > 1
-                        ? 5
-                        : 0
-                    }
-                    dataKey="value"
-                  >
-                    {stats.quality_chart.map((entry, index) => (
-                      <Cell
-                        key={`cell-${index}`}
-                        fill={
-                          entry.name === "Passable" ? COLORS[0] : COLORS[1]
-                        }
+            {/* 2. CHARTS ROW */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
+              {/* Activity Chart */}
+              <Card className="flex flex-col">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm">Measurement Activity (7d)</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 flex-1 min-h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart
+                      data={stats.activity_chart}
+                      margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                      <XAxis
+                        dataKey="date"
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { weekday: 'short' })}
+                        style={{ fontSize: '10px', fill: '#888' }}
                       />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend verticalAlign="bottom" height={36} />
-                </PieChart>
-              </ResponsiveContainer>
+                      <YAxis
+                         tickLine={false}
+                         axisLine={false}
+                         style={{ fontSize: '10px', fill: '#888' }}
+                      />
+                      <Tooltip />
+                      <Area
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#3b82f6"
+                        fill="#3b82f6"
+                        fillOpacity={0.2}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              {/* Pie Chart */}
+              <Card className="flex flex-col">
+                <CardHeader className="p-4 pb-2">
+                  <CardTitle className="text-sm">Infrastructure Health</CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 pt-0 flex-1 min-h-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={stats.quality_chart}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={70}
+                        fill="#8884d8"
+                        stroke="none"
+                        paddingAngle={
+                          stats.quality_chart.filter((d) => d.value > 0).length > 1
+                            ? 5
+                            : 0
+                        }
+                        dataKey="value"
+                      >
+                        {stats.quality_chart.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={
+                              entry.name === "Passable" ? COLORS[0] : COLORS[1]
+                            }
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: '12px' }}/>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
+
+          </div>
+
+          {/* RIGHT COLUMN: MAP (Span 4) */}
+          <div className="lg:col-span-4 h-full min-h-[400px]">
+            <Card className="h-full flex flex-col overflow-hidden">
+              <CardHeader className="p-4 pb-2 flex-none">
+                <CardTitle className="text-sm">Coverage Heatmap</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0 flex-1 relative">
+                 <div className="absolute inset-0">
+                    <CoverageMap />
+                 </div>
+              </CardContent>
+            </Card>
+          </div>
+
+        </div>
       </div>
     </div>
   );

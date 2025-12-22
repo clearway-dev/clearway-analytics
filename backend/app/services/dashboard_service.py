@@ -3,10 +3,45 @@ from sqlalchemy import func, cast, distinct
 from geoalchemy2 import Geography
 from app.models import RoadSegment, CleanedMeasurement, SegmentStatistics
 from datetime import date, timedelta
+import json
 
 class DashboardService:
     def __init__(self, db: Session):
         self.db = db
+
+    def get_coverage_map_data(self):
+        """
+        Returns GeoJSON of road segments showing measurement intensity.
+        Only returns segments with > 0 measurements.
+        """
+        # Aggregate measurements count per segment across all dates
+        results = self.db.query(
+            RoadSegment.id,
+            func.sum(SegmentStatistics.measurements_count).label("total_count"),
+            func.ST_AsGeoJSON(RoadSegment.geom).label("geometry")
+        ).join(
+            SegmentStatistics, RoadSegment.id == SegmentStatistics.segment_id
+        ).group_by(
+            RoadSegment.id
+        ).having(
+            func.sum(SegmentStatistics.measurements_count) > 0
+        ).all()
+
+        features = []
+        for row in results:
+            features.append({
+                "type": "Feature",
+                "geometry": json.loads(row.geometry),
+                "properties": {
+                    "id": str(row.id),
+                    "intensity": row.total_count
+                }
+            })
+
+        return {
+            "type": "FeatureCollection",
+            "features": features
+        }
 
     def get_activity_chart_data(self):
         """

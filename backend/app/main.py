@@ -168,3 +168,11 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
     """
     service = DashboardService(db)
     return service.get_global_stats()
+
+@app.get("/api/dashboard/coverage")
+async def get_coverage_map(db: Session = Depends(get_db)):
+    """
+    Returns GeoJSON heatmap of measurement coverage.
+    """
+    service = DashboardService(db)
+    return service.get_coverage_map_data()
