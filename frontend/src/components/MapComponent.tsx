@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import type { Layer } from "leaflet";
+import ObstacleLayer, { type ObstacleFeature } from "./ObstacleLayer";
 
 interface SegmentData {
   segment_id: string;
@@ -17,6 +18,7 @@ interface MapComponentProps {
   vehicleWidth: number;
   selectedDate: string;
   flyToTarget: LatLngTuple | null;
+  obstacles?: ObstacleFeature[];
 }
 
 type SegmentFeature = Feature<Geometry, SegmentData>;
@@ -40,6 +42,7 @@ export default function MapComponent({
   vehicleWidth,
   selectedDate,
   flyToTarget,
+  obstacles = [],
 }: MapComponentProps) {
   const position: LatLngTuple = [49.7384, 13.3736];
 
@@ -109,6 +112,7 @@ export default function MapComponent({
           onEachFeature={onEachFeature}
         />
       )}
+      <ObstacleLayer obstacles={obstacles} />
     </MapContainer>
   );
 }

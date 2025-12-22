@@ -1,9 +1,10 @@
 import BottomSheet from "../components/BottomSheet";
 import FloatingPanel from "../components/FloatingPanel";
 import MapComponent from "../components/MapComponent";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import type { LatLngTuple } from "leaflet";
 import { useSearchParams } from "react-router-dom";
+import type { ObstacleFeature } from "../components/ObstacleLayer";
 
 interface SegmentData {
   segment_id: string;
@@ -43,8 +44,37 @@ export default function MapPage() {
     return null;
   });
 
+  const [obstacles, setObstacles] = useState<ObstacleFeature[]>([]);
+
+  // Fetch obstacles when date changes (only in history mode)
+  useEffect(() => {
+    if (!isLiveMode && selectedDate) {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
+      fetch(`${apiUrl}/api/analytics/obstacles?target_date=${selectedDate}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.features) {
+            setObstacles(data.features);
+          } else {
+            setObstacles([]);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load obstacles:", err);
+          setObstacles([]);
+        });
+    }
+  }, [selectedDate, isLiveMode]);
+
   const handleSearchResultSelect = (lat: number, lon: number) => {
     setFlyToTarget([lat, lon]);
+  };
+
+  const handleLiveModeChange = (isLive: boolean) => {
+    setIsLiveMode(isLive);
+    if (isLive) {
+      setObstacles([]);
+    }
   };
 
   return (
@@ -56,6 +86,7 @@ export default function MapPage() {
           vehicleWidth={vehicleWidth}
           selectedDate={selectedDate}
           flyToTarget={flyToTarget}
+          obstacles={obstacles}
         />
       </div>
 
@@ -66,7 +97,7 @@ export default function MapPage() {
         selectedDate={selectedDate}
         setSelectedDate={setSelectedDate}
         isLiveMode={isLiveMode}
-        setIsLiveMode={setIsLiveMode}
+        setIsLiveMode={handleLiveModeChange}
         onSearchResultSelect={handleSearchResultSelect}
       />
 
