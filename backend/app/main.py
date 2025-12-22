@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from datetime import date
 import json
 from app.services.analytics_service import AnalyticsService
+from app.services.dashboard_service import DashboardService
 
 # Initialize the FastAPI application with metadata
 app = FastAPI(
@@ -159,3 +160,11 @@ async def search_roads(q: str, db: Session = Depends(get_db)):
         }
         for row in results
     ]
+
+@app.get("/api/dashboard/stats")
+async def get_dashboard_stats(db: Session = Depends(get_db)):
+    """
+    Returns global KPI statistics for the admin dashboard.
+    """
+    service = DashboardService(db)
+    return service.get_global_stats()
