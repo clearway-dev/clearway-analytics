@@ -86,6 +86,33 @@ class DashboardService:
             {"name": "Critical", "value": critical_count}
         ]
 
+    def get_critical_segments(self, limit=5):
+        """
+        Returns the top 'limit' narrowest segments (anomalies).
+        """
+        results = self.db.query(
+            RoadSegment.id,
+            RoadSegment.name,
+            SegmentStatistics.min_width,
+            SegmentStatistics.avg_width,
+            SegmentStatistics.measurements_count
+        ).join(
+            SegmentStatistics, RoadSegment.id == SegmentStatistics.segment_id
+        ).order_by(
+            SegmentStatistics.min_width.asc()
+        ).limit(limit).all()
+
+        return [
+            {
+                "id": str(r.id),
+                "name": r.name or "Unknown Road",
+                "min_width": r.min_width,
+                "avg_width": r.avg_width,
+                "measurements_count": r.measurements_count
+            }
+            for r in results
+        ]
+
     def get_global_stats(self):
         """
         Calculates global KPI statistics for the dashboard.
@@ -114,5 +141,6 @@ class DashboardService:
             "total_length_km": total_length_km,
             "measured_segments_count": measured_segments_count,
             "activity_chart": self.get_activity_chart_data(),
-            "quality_chart": self.get_quality_pie_data()
+            "quality_chart": self.get_quality_pie_data(),
+            "anomalies": self.get_critical_segments()
         }
