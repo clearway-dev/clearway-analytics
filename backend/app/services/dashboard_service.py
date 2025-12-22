@@ -95,7 +95,10 @@ class DashboardService:
             RoadSegment.name,
             SegmentStatistics.min_width,
             SegmentStatistics.avg_width,
-            SegmentStatistics.measurements_count
+            SegmentStatistics.measurements_count,
+            func.ST_Y(func.ST_Centroid(RoadSegment.geom)).label("lat"),
+            func.ST_X(func.ST_Centroid(RoadSegment.geom)).label("lon"),
+            SegmentStatistics.stat_date
         ).join(
             SegmentStatistics, RoadSegment.id == SegmentStatistics.segment_id
         ).order_by(
@@ -108,7 +111,10 @@ class DashboardService:
                 "name": r.name or "Unknown Road",
                 "min_width": r.min_width,
                 "avg_width": r.avg_width,
-                "measurements_count": r.measurements_count
+                "measurements_count": r.measurements_count,
+                "lat": r.lat,
+                "lon": r.lon,
+                "date": str(r.stat_date)
             }
             for r in results
         ]

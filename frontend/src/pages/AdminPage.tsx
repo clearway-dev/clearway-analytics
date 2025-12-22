@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
 import { Activity, Map, Ruler, BarChart3, ArrowRight } from "lucide-react";
@@ -35,6 +36,9 @@ interface Anomaly {
   min_width: number;
   avg_width: number;
   measurements_count: number;
+  lat: number;
+  lon: number;
+  date: string;
 }
 
 interface DashboardStats {
@@ -52,6 +56,7 @@ const COLORS = ["#22c55e", "#ef4444"];
 export default function AdminPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -280,7 +285,14 @@ export default function AdminPage() {
                         <TableCell>{(anomaly.avg_width / 100).toFixed(2)} m</TableCell>
                         <TableCell className="text-right">{anomaly.measurements_count}</TableCell>
                         <TableCell>
-                          <button className="p-1 hover:bg-gray-100 rounded">
+                          <button
+                            onClick={() =>
+                              navigate(
+                                `/?segmentId=${anomaly.id}&lat=${anomaly.lat}&lon=${anomaly.lon}&date=${anomaly.date}`
+                              )
+                            }
+                            className="p-1 hover:bg-gray-100 rounded"
+                          >
                             <ArrowRight className="h-4 w-4 text-gray-400" />
                           </button>
                         </TableCell>
