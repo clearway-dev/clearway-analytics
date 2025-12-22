@@ -2,10 +2,54 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, distinct
 from geoalchemy2 import Geography
 from app.models import RoadSegment, CleanedMeasurement, SegmentStatistics
+from datetime import date, timedelta
 
 class DashboardService:
     def __init__(self, db: Session):
         self.db = db
+
+    def get_activity_chart_data(self):
+        """
+        Returns measurement count grouped by day for the last 7 days.
+        """
+        end_date = date.today()
+        start_date = end_date - timedelta(days=6)
+        
+        results = self.db.query(
+            func.date(CleanedMeasurement.created_at).label('date'),
+            func.count(CleanedMeasurement.id).label('count')
+        ).filter(
+            CleanedMeasurement.created_at >= start_date
+        ).group_by(
+            func.date(CleanedMeasurement.created_at)
+        ).order_by('date').all()
+
+        return [{"date": str(r.date), "count": r.count} for r in results]
+
+    def get_quality_pie_data(self):
+        """
+        Returns distribution of road quality (Passable vs Critical)
+        based on the latest statistics.
+        Passable >= 3.0m (300cm).
+        """
+        latest_date = self.db.query(func.max(SegmentStatistics.stat_date)).scalar()
+        if not latest_date:
+            return []
+            
+        passable_count = self.db.query(func.count(SegmentStatistics.id)).filter(
+            SegmentStatistics.stat_date == latest_date,
+            SegmentStatistics.avg_width >= 300.0
+        ).scalar() or 0
+        
+        critical_count = self.db.query(func.count(SegmentStatistics.id)).filter(
+            SegmentStatistics.stat_date == latest_date,
+            SegmentStatistics.avg_width < 300.0
+        ).scalar() or 0
+        
+        return [
+            {"name": "Passable", "value": passable_count},
+            {"name": "Critical", "value": critical_count}
+        ]
 
     def get_global_stats(self):
         """
@@ -33,5 +77,7 @@ class DashboardService:
             "total_segments": total_segments,
             "total_measurements": total_measurements,
             "total_length_km": total_length_km,
-            "measured_segments_count": measured_segments_count
+            "measured_segments_count": measured_segments_count,
+            "activity_chart": self.get_activity_chart_data(),
+            "quality_chart": self.get_quality_pie_data()
         }
