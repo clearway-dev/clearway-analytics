@@ -26,7 +26,7 @@ export default function MapPage() {
   };
 
   return (
-    <div className="relative h-screen w-screen overflow-hidden bg-gray-100">
+    <div className="relative h-full w-full overflow-hidden bg-gray-100">
       {/* 1. Map Layer (Background) */}
       <div className="absolute inset-0 z-0">
         <MapComponent

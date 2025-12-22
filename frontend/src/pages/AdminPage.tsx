@@ -86,7 +86,7 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="h-screen w-screen overflow-hidden bg-gray-50/50 flex flex-col">
+    <div className="h-full w-full overflow-hidden bg-gray-50/50 flex flex-col">
       {/* HEADER */}
       <div className="flex-none p-6 pb-2">
         <h2 className="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h2>
