@@ -1,26 +1,48 @@
-from sqlalchemy import Column, String, DateTime, func, Date, ForeignKey, Float, Integer, BigInteger, Boolean
+from sqlalchemy import Column, String, DateTime, func, Date, ForeignKey, Float, Integer, BigInteger, Boolean, Text
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 from geoalchemy2 import Geometry
 import uuid
 from sqlalchemy.orm import relationship
 
+class Sensor(Base):
+    __tablename__ = "sensors"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    description = Column(Text, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+class Vehicle(Base):
+    __tablename__ = "vehicles"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    vehicle_name = Column(String(100), nullable=False)
+    width = Column(Float, nullable=False)
+
+class Session(Base):
+    __tablename__ = "sessions"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    sensor_id = Column(UUID(as_uuid=True), ForeignKey("sensors.id", ondelete="CASCADE"), nullable=False)
+    vehicle_id = Column(UUID(as_uuid=True), ForeignKey("vehicles.id", ondelete="CASCADE"), nullable=False)
 
 class RawMeasurement(Base):
     __tablename__ = "raw_measurements"
 
     id = Column(BigInteger, primary_key=True, index=True)
-    session_id = Column(UUID(as_uuid=True), nullable=True)
+    session_id = Column(UUID(as_uuid=True), ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False)
     
-    timestamp = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    measured_at = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
     
-    latitude = Column(Float, nullable=True)
-    longitude = Column(Float, nullable=True)
+    latitude = Column(Float, nullable=False)
+    longitude = Column(Float, nullable=False)
     
-    distance_left = Column(Float, nullable=True)
-    distance_right = Column(Float, nullable=True)
+    distance_left = Column(Float, nullable=False)
+    distance_right = Column(Float, nullable=False)
     
-    geom = Column(Geometry("POINT", srid=4326), nullable=True)
+    # geom column does not exist in raw_measurements table in DB
     
     is_valid = Column(Boolean, default=True)
     

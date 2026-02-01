@@ -1,82 +1,129 @@
 import sys
 import os
 import random
-from datetime import datetime
+import datetime
+from geoalchemy2.elements import WKTElement
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Add parent directory to path to allow importing 'app' module
+# Assuming this script is located at backend/scripts/seed_obstacle.py
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.database import SessionLocal
-from app.models import RoadSegment, CleanedMeasurement, RawMeasurement
+from app.models import CleanedMeasurement, RawMeasurement, Session, Sensor, Vehicle
 
-def seed_obstacle_data():
+def generate_random_point_in_radius(center_lat, center_lon, radius_meters):
+    """
+    Generates a random lat/lon within a rough radius in meters.
+    """
+    # Earth radius approximation, but for small distances flat earth assumption is fine-ish
+    # 1 degree lat ~= 111,111 meters
+    # 1 degree lon ~= 111,111 * cos(lat) meters
+    
+    # Random offset in meters
+    angle = random.uniform(0, 2 * 3.14159)
+    distance = random.uniform(0, radius_meters)
+    
+    lat_offset_meters = distance * 3.14159 # Using simplified component logic or just direct conversion
+    # Better:
+    # d_lat = distance * cos(angle) / 111111
+    # d_lon = distance * sin(angle) / (111111 * cos(center_lat))
+    
+    d_lat = (distance * lambda_cos(angle)) / 111111.0
+    d_lon = (distance * lambda_sin(angle)) / (111111.0 * 0.65) # approx cos(49)
+    
+    return center_lat + d_lat, center_lon + d_lon
+
+def lambda_cos(x):
+    import math
+    return math.cos(x)
+
+def lambda_sin(x):
+    import math
+    return math.sin(x)
+
+def seed_obstacles():
     db = SessionLocal()
     try:
-        # 1. Get segment
-        segment = db.query(RoadSegment).first()
-        if not segment:
-            print("ERROR: No RoadSegments. Did you run seed_roads.py?")
-            return
-
-        print(f"Using Segment ID: {segment.id}")
-
-        # 2. Configuration
-        base_lat = 49.741
-        base_lon = 13.385
-        target_date = datetime(2026, 2, 1, 12, 0, 0)
-        raw_id = 9999
-        raw_parent = db.query(RawMeasurement).filter(RawMeasurement.id == raw_id).first()
+        print("Seeding obstacle data...")
         
-        if not raw_parent:
-            print(f"Creating missing RawMeasurement with ID {raw_id}...")
-            # Create dummy parent
-            # Use the same geometry as obstacle center
-            wkt_base = f"POINT({base_lon} {base_lat})"
+        # Configuration
+        # Plzeň coordinates (near namesti Republiky)
+        base_lat = 49.747
+        base_lon = 13.377
+
+        # 0. Create dummy Sensor and Vehicle
+        print("Creating dummy Sensor and Vehicle...")
+        dummy_sensor = Sensor(
+            description="Test Sensor",
+            is_active=True
+        )
+        db.add(dummy_sensor)
+        
+        dummy_vehicle = Vehicle(
+            vehicle_name="Test Vehicle",
+            width=250.0
+        )
+        db.add(dummy_vehicle)
+        db.flush()
+
+        # 1. Create a dummy Session
+        print("Creating dummy Session...")
+        dummy_session = Session(
+            sensor_id=dummy_sensor.id,
+            vehicle_id=dummy_vehicle.id
+        )
+        db.add(dummy_session)
+        db.flush()
+        session_id = dummy_session.id
+        print(f"Created dummy Session with ID: {session_id}")
+
+        # Create a dummy RawMeasurement to satisfy FK/NotNull constraint
+        print("Creating dummy RawMeasurement...")
+        dummy_raw = RawMeasurement(
+            session_id=session_id,
+            measured_at=datetime.datetime.now(),
+            latitude=base_lat,
+            longitude=base_lon,
+            distance_left=150.0,
+            distance_right=150.0,
+            is_valid=True
+        )
+        db.add(dummy_raw)
+        db.flush() # Populate dummy_raw.id
+        raw_id = dummy_raw.id
+        print(f"Created dummy RawMeasurement with ID: {raw_id}")
+        
+        # Create a cluster of 15 points
+        print(f"Creating cluster at {base_lat}, {base_lon}")
+        
+        cluster_points = []
+        for _ in range(15):
+            lat_off = (random.random() - 0.5) * (8.0 / 111111.0) # +/- 4 meters
+            lon_off = (random.random() - 0.5) * (8.0 / (111111.0 * 0.65))
             
-            raw_parent = RawMeasurement(
-                id=raw_id,
-                timestamp=target_date,
-                geom=wkt_base,
+            lat = base_lat + lat_off
+            lon = base_lon + lon_off
+            
+            meas = CleanedMeasurement(
+                raw_measurement_id=raw_id,
+                cleaned_width=random.uniform(240.0, 290.0),
+                quality_score=random.uniform(0.8, 1.0),
+                geom=WKTElement(f'POINT({lon} {lat})', srid=4326),
+                created_at=datetime.datetime.now()
             )
-            db.add(raw_parent)
-            db.commit() # Save it so it can be referenced
-            print("RawMeasurement 9999 created.")
-        else:
-            print("RawMeasurement 9999 already exists, continuing...")
-        # -----------------------------------------------
-
-        measurements = []
-
-        # 3. Generate 20 points
-        print(f"Generating 20 points for date {target_date}...")
-        for _ in range(20):
-            jitter_lat = random.uniform(-0.00005, 0.00005)
-            jitter_lon = random.uniform(-0.00005, 0.00005)
+            cluster_points.append(meas)
             
-            lat = base_lat + jitter_lat
-            lon = base_lon + jitter_lon
-            
-            wkt_geom = f"POINT({lon} {lat})"
-            
-            measurement = CleanedMeasurement(
-                raw_measurement_id=raw_id, # Teď už bezpečné ID
-                cleaned_width=220.0,
-                quality_score=1.0,
-                geom=wkt_geom,
-                created_at=target_date
-            )
-            measurements.append(measurement)
+        db.add_all(cluster_points)
+        print(f"Added {len(cluster_points)} points for cluster.")
 
-        # 4. Save
-        db.add_all(measurements)
         db.commit()
-
-        print("DONE: Data for 2/1/2026 is in the database.")
-
+        print("Seeding complete successfully.")
+        
     except Exception as e:
-        print(f"Error: {e}")
+        print(f"Error seeding obstacles: {e}")
         db.rollback()
     finally:
         db.close()
 
 if __name__ == "__main__":
-    seed_obstacle_data()
+    seed_obstacles()
