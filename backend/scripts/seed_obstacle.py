@@ -93,16 +93,18 @@ def seed_obstacles():
         raw_id = dummy_raw.id
         print(f"Created dummy RawMeasurement with ID: {raw_id}")
         
-        # Create a cluster of 15 points
-        print(f"Creating cluster at {base_lat}, {base_lon}")
+        # Create a cluster of 15 points (200m away from base)
+        base_lat_2 = base_lat + 0.002 
+        base_lon_2 = base_lon + 0.002
+        print(f"Creating cluster at {base_lat_2}, {base_lon_2}")
         
         cluster_points = []
         for _ in range(15):
             lat_off = (random.random() - 0.5) * (8.0 / 111111.0) # +/- 4 meters
             lon_off = (random.random() - 0.5) * (8.0 / (111111.0 * 0.65))
             
-            lat = base_lat + lat_off
-            lon = base_lon + lon_off
+            lat = base_lat_2 + lat_off
+            lon = base_lon_2 + lon_off
             
             meas = CleanedMeasurement(
                 raw_measurement_id=raw_id,
