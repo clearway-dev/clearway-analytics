@@ -8,6 +8,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 
 from fastmcp import FastMCP
 from sqlalchemy import inspect, text, func
+from sqlalchemy.exc import IntegrityError
 from app.database import engine, SessionLocal
 from app.services.analytics_service import AnalyticsService
 from app.models import SegmentStatistics
@@ -89,9 +90,18 @@ def get_daily_analytics(target_date: str) -> dict:
         return {"error": "Invalid date format. Please use YYYY-MM-DD."}
 
     with SessionLocal() as db:
-        # Calculate stats (logic from AnalyticsService)
+        status_message = "Success"
         service = AnalyticsService(db)
-        service.calculate_daily_stats(target_date_obj)
+        
+        try:
+            # Calculate stats (logic from AnalyticsService)
+            service.calculate_daily_stats(target_date_obj)
+        except IntegrityError:
+            db.rollback()
+            status_message = "Data already exists for this date. Returning existing stats."
+        except Exception as e:
+            db.rollback()
+            return {"error": f"An unexpected error occurred: {str(e)}"}
         
         # Query the results to return a summary
         stats = db.query(
@@ -101,9 +111,11 @@ def get_daily_analytics(target_date: str) -> dict:
         ).filter(SegmentStatistics.stat_date == target_date_obj).first()
         
         return {
+            "status": status_message,
             "date": target_date,
-            "processed_segments": stats.total_segments if stats else 0,
-            "average_network_width": round(stats.average_width, 2) if stats and stats.average_width else None,
-            "total_measurements_processed": stats.total_measurements if stats else 0,
-            "status": "Success"
+            "data": {
+                "processed_segments": stats.total_segments if stats else 0,
+                "average_network_width": round(float(stats.average_width), 2) if stats and stats.average_width else None,
+                "total_measurements_processed": int(stats.total_measurements) if stats and stats.total_measurements else 0
+            }
         }
