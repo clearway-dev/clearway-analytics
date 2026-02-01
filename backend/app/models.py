@@ -1,9 +1,30 @@
-from sqlalchemy import Column, String, DateTime, func, Date, ForeignKey, Float, Integer, BigInteger
+from sqlalchemy import Column, String, DateTime, func, Date, ForeignKey, Float, Integer, BigInteger, Boolean
 from sqlalchemy.dialects.postgresql import UUID
 from app.database import Base
 from geoalchemy2 import Geometry
 import uuid
 from sqlalchemy.orm import relationship
+
+
+class RawMeasurement(Base):
+    __tablename__ = "raw_measurements"
+
+    id = Column(BigInteger, primary_key=True, index=True)
+    session_id = Column(UUID(as_uuid=True), nullable=True)
+    
+    timestamp = Column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
+    
+    distance_left = Column(Float, nullable=True)
+    distance_right = Column(Float, nullable=True)
+    
+    geom = Column(Geometry("POINT", srid=4326), nullable=True)
+    
+    is_valid = Column(Boolean, default=True)
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 class RoadSegment(Base):
@@ -26,7 +47,7 @@ class CleanedMeasurement(Base):
     __tablename__ = "cleaned_measurements"
 
     id = Column(BigInteger, primary_key=True, index=True)
-    raw_measurement_id = Column(BigInteger, nullable=True) # It seems to be nullable based on typical flows, but the error says NOT NULL constraint violation. Let's make it explicitly defined to handle it. Actually the error says "violates not-null constraint", so we must provide it.
+    raw_measurement_id = Column(BigInteger, nullable=True)
     
     cleaned_width = Column(Float, nullable=False)
     quality_score = Column(Float)
