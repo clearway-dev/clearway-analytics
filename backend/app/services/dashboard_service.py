@@ -86,6 +86,18 @@ class DashboardService:
             {"name": "Critical", "value": critical_count}
         ]
 
+    def get_available_dates(self):
+        """
+        Returns a list of dates that have statistical data available.
+        """
+        results = self.db.query(
+            distinct(SegmentStatistics.stat_date)
+        ).order_by(
+            SegmentStatistics.stat_date.desc()
+        ).all()
+
+        return [str(r[0]) for r in results]
+
     def get_critical_segments(self, limit=5):
         """
         Returns the top 'limit' narrowest segments (anomalies).

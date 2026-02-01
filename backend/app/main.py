@@ -178,6 +178,14 @@ async def get_coverage_map(db: Session = Depends(get_db)):
     service = DashboardService(db)
     return service.get_coverage_map_data()
 
+@app.get("/api/dashboard/available-dates")
+async def get_available_dates(db: Session = Depends(get_db)):
+    """
+    Returns a list of dates for which data is available.
+    """
+    service = DashboardService(db)
+    return {"dates": service.get_available_dates()}
+
 @app.get("/api/analytics/obstacles")
 async def get_obstacles(
     target_date: date = date.today(),
