@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import type { LatLngTuple } from "leaflet";
 import { useSearchParams } from "react-router-dom";
 import type { ObstacleFeature } from "../components/ObstacleLayer";
+import { fetchAvailableDates } from "../services/api";
 
 interface SegmentData {
   segment_id: string;
@@ -45,6 +46,12 @@ export default function MapPage() {
   });
 
   const [obstacles, setObstacles] = useState<ObstacleFeature[]>([]);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+
+  // Fetch available dates on mount
+  useEffect(() => {
+    fetchAvailableDates().then(setAvailableDates);
+  }, []);
 
   // Fetch obstacles when date changes (only in history mode)
   useEffect(() => {
@@ -99,6 +106,7 @@ export default function MapPage() {
         isLiveMode={isLiveMode}
         setIsLiveMode={handleLiveModeChange}
         onSearchResultSelect={handleSearchResultSelect}
+        availableDates={availableDates}
       />
 
       {/* 3. Bottom Sheet (Details) */}

@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { Calendar } from "./ui/calendar";
+import { format } from "date-fns";
 
 interface SearchResult {
   id: string;
@@ -15,6 +17,7 @@ interface FloatingPanelProps {
   isLiveMode: boolean;
   setIsLiveMode: (isLive: boolean) => void;
   onSearchResultSelect: (lat: number, lon: number) => void;
+  availableDates: string[];
 }
 
 export default function FloatingPanel({
@@ -25,10 +28,12 @@ export default function FloatingPanel({
   isLiveMode,
   setIsLiveMode,
   onSearchResultSelect,
+  availableDates,
 }: FloatingPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   // Debounced search effect
   useEffect(() => {
@@ -65,6 +70,7 @@ export default function FloatingPanel({
   const handleLiveClick = () => {
     setIsLiveMode(true);
     setSelectedDate(new Date().toISOString().split("T")[0]);
+    setShowCalendar(false);
   };
 
   return (
@@ -133,7 +139,7 @@ export default function FloatingPanel({
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
           Data Source
         </label>
-        <div className="flex bg-gray-100 p-1 rounded-lg">
+        <div className="flex bg-gray-100 p-1 rounded-lg mb-3">
           <button
             onClick={handleLiveClick}
             className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
@@ -157,13 +163,36 @@ export default function FloatingPanel({
         </div>
         {/* Date Picker */}
         {!isLiveMode && (
-          <div className="animate-in fade-in slide-in-from-top-2 duration-300 mt-3">
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          <div className="relative animate-in fade-in slide-in-from-top-2 duration-300">
+            <button
+              onClick={() => setShowCalendar(!showCalendar)}
+              className="w-full flex justify-between items-center px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+            >
+              <span>{selectedDate}</span>
+              <span className="text-gray-500">📅</span>
+            </button>
+            
+            {showCalendar && (
+              <div className="absolute top-full left-0 mt-2 p-0 w-auto bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                <Calendar
+                  mode="single"
+                  selected={new Date(selectedDate)}
+                  onSelect={(date) => {
+                    if (date) {
+                      setSelectedDate(format(date, "yyyy-MM-dd"));
+                      setShowCalendar(false);
+                    }
+                  }}
+                  modifiers={{
+                    hasData: (date) =>
+                      availableDates.some((d) => d === format(date, "yyyy-MM-dd")),
+                  }}
+                  modifiersClassNames={{
+                    hasData: "bg-green-100 font-bold text-green-800 rounded-md",
+                  }}
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
