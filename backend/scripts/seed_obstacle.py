@@ -25,8 +25,7 @@ def seed_obstacle_data():
         # 2. Configuration
         base_lat = 49.741
         base_lon = 13.385
-        # Set date to tomorrow (relative to the user's prompt context date of 2025-12-22)
-        target_date = datetime(2025, 12, 23, 12, 0, 0)
+        target_date = datetime(2026, 2, 1, 12, 0, 0)
         
         measurements = []
 
