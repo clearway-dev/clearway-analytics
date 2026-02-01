@@ -45,6 +45,8 @@ jobs:
           file: ./frontend/Dockerfile.prod
           push: true
           tags: ${{ env.REGISTRY }}/${{ env.OWNER_LOWER }}/clearway-frontend:latest
+          build-args: |
+            VITE_API_URL=https://api.clearway.zephyron.tech
 
   deploy:
     needs: build-and-push
