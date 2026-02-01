@@ -3,7 +3,7 @@ import os
 import random
 from datetime import datetime
 
-sys.path.append(os.getcwd())
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import SessionLocal
 from app.models import RoadSegment, CleanedMeasurement, RawMeasurement

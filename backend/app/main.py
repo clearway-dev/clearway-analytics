@@ -22,8 +22,11 @@ app = FastAPI(
 # --------------------------------------------------------------------------
 # Allow the frontend (React running on port 3000) to communicate with this API.
 origins = [
+    "http://localhost",
+    "http://localhost:5173", 
     "http://localhost:3000",
-    "http://127.0.0.1:3000",
+    "https://clearway.zephyron.tech", 
+    "https://www.clearway.zephyron.tech"
 ]
 
 app.add_middleware(
