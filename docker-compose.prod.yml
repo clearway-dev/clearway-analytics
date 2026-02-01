@@ -1,0 +1,38 @@
+services:
+  # --- BACKEND ---
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/clearway-backend:latest
+    restart: always
+    env_file:
+      - .env
+    networks:
+      - web_proxy   # To be accessible from the internet (via Traefik)
+      - db_internal # To access the 'clearway_db' database (in the infra network)
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.clearway-api.rule=Host(`api.clearway.zephyron.tech`)"
+      - "traefik.http.routers.clearway-api.entrypoints=websecure"
+      - "traefik.http.routers.clearway-api.tls.certresolver=myresolver"
+      - "traefik.docker.network=web_proxy"
+      - "traefik.http.services.clearway-api.loadbalancer.server.port=8000"
+
+  # --- FRONTEND ---
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/clearway-frontend:latest
+    restart: always
+    networks:
+      - web_proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.clearway-ui.rule=Host(`clearway.zephyron.tech`)"
+      - "traefik.http.routers.clearway-ui.entrypoints=websecure"
+      - "traefik.http.routers.clearway-ui.tls.certresolver=myresolver"
+      - "traefik.docker.network=web_proxy"
+      - "traefik.http.services.clearway-ui.loadbalancer.server.port=80"
+
+# --- NETWORKS ---
+networks:
+  web_proxy:
+    external: true
+  db_internal:
+    external: true

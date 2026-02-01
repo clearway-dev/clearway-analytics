@@ -1,0 +1,101 @@
+name: CD Production
+
+on:
+  push:
+    branches: [ "main" ]
+
+env:
+  REGISTRY: ghcr.io
+  # Použijeme env proměnnou pro název, aby byl všude stejný
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Převedeme název repozitáře na malá písmena pro build
+      - name: Lowercase Repo Name
+        run: |
+          echo "REPO_LOWER=${GITHUB_REPOSITORY,,}" >> $GITHUB_ENV
+
+      - name: Build and push Backend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend
+          push: true
+          # Tady se skládá tag: ghcr.io/vandlicek/clearway-backend:latest
+          tags: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}-backend:latest
+
+      - name: Build and push Frontend
+        uses: docker/build-push-action@v5
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile.prod
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.REPO_LOWER }}-frontend:latest
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 1. KROK: Nahrajeme aktuální docker-compose.prod.yml na server
+      - name: Copy files via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          source: "docker-compose.prod.yml"
+          target: "/home/vandl/clearway"
+
+      # 2. KROK: Spustíme příkazy na serveru
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.HETZNER_HOST }}
+          username: ${{ secrets.HETZNER_USER }}
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          # Předáme token a ownera bezpečněji přes envs
+          envs: GITHUB_TOKEN,GITHUB_ACTOR,GITHUB_REPOSITORY_OWNER
+          script: |
+            cd /home/vandl/clearway
+            
+            # Nastavíme proměnné prostředí pro Docker Compose
+            # docker-compose.prod.yml očekává ${GITHUB_REPOSITORY_OWNER}
+            # Převedeme na lowercase pomocí tr (protože na serveru nemusí být bash 4.0+)
+            export GITHUB_REPOSITORY_OWNER=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
+            
+            # Login do GHCR (použijeme token z pipeline pro tento jednorázový pull)
+            echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
+            
+            # Stáhneme nové verze images
+            docker compose -f docker-compose.prod.yml pull
+            
+            # Restartujeme služby
+            # --remove-orphans smaže staré kontejnery, pokud jsme změnili názvy služeb
+            docker compose -f docker-compose.prod.yml up -d --remove-orphans
+            
+            # Úklid starých images, aby se neplnil disk
+            docker image prune -f
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_REPOSITORY_OWNER: ${{ github.repository_owner }}
