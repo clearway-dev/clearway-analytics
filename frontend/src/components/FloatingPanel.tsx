@@ -188,7 +188,7 @@ export default function FloatingPanel({
                       availableDates.some((d) => d === format(date, "yyyy-MM-dd")),
                   }}
                   modifiersClassNames={{
-                    hasData: "bg-green-100 font-bold text-green-800 rounded-md",
+                    hasData: "font-bold rounded-md !bg-green-100 text-green-800 aria-selected:!bg-green-900 aria-selected:!text-white",
                   }}
                 />
               </div>
