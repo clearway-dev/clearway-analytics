@@ -16,6 +16,27 @@ services:
       - "traefik.docker.network=web_proxy"
       - "traefik.http.services.clearway-api.loadbalancer.server.port=8000"
 
+  backend-mcp:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/clearway-backend:latest
+    command: fastmcp run app.mcp.server:mcp --transport sse --port 8001 --host 0.0.0.0
+    restart: always
+    env_file:
+      - .env
+    expose:
+      - "8001"
+    networks:
+      - web_proxy
+      - db_internal
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.mcp.rule=Host(`api.clearway.zephyron.tech`) && PathPrefix(`/mcp`)"
+      - "traefik.http.routers.mcp.entrypoints=websecure"
+      - "traefik.http.routers.mcp.tls.certresolver=myresolver"
+      - "traefik.docker.network=web_proxy"
+      - "traefik.http.services.mcp.loadbalancer.server.port=8001"
+      - "traefik.http.middlewares.mcp-strip.stripprefix.prefixes=/mcp"
+      - "traefik.http.routers.mcp.middlewares=mcp-strip"
+
   # --- FRONTEND ---
   frontend:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/clearway-frontend:latest
