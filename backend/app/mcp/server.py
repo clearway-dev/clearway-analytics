@@ -119,3 +119,39 @@ def get_daily_analytics(target_date: str) -> dict:
                 "total_measurements_processed": int(stats.total_measurements) if stats and stats.total_measurements else 0
             }
         }
+
+@mcp.tool()
+def get_road_features_in_bbox(min_lat: float, min_lon: float, max_lat: float, max_lon: float) -> list[dict]:
+    """
+    Retrieves road segments within a specific bounding box. Returns GeoJSON-compatible data. Limit 50 results to save context.
+    """
+    query = text("""
+        SELECT
+            id,
+            name,
+            ST_AsGeoJSON(geom) as geom_json
+        FROM road_segments
+        WHERE geom && ST_MakeEnvelope(:min_lon, :min_lat, :max_lon, :max_lat, 4326)
+        LIMIT 50
+    """)
+
+    with SessionLocal() as db:
+        results = db.execute(query, {
+            "min_lon": min_lon,
+            "min_lat": min_lat,
+            "max_lon": max_lon,
+            "max_lat": max_lat
+        }).mappings().all()
+
+        features = []
+        for row in results:
+            features.append({
+                "type": "Feature",
+                "properties": {
+                    "id": str(row["id"]),
+                    "name": row["name"]
+                },
+                "geometry": json.loads(row["geom_json"])
+            })
+
+        return features

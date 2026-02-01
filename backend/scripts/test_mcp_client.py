@@ -64,6 +64,30 @@ async def run_client():
                 except Exception as e:
                     logger.error(f"Failed to execute tool: {e}")
 
+                # 5. Test execution: get_road_features_in_bbox
+                logger.info("🌍 Invoking tool 'get_road_features_in_bbox' (Pilsen Center)...")
+                bbox_args = {
+                    "min_lat": 49.740,
+                    "min_lon": 13.370,
+                    "max_lat": 49.750,
+                    "max_lon": 13.390
+                }
+                
+                try:
+                    bbox_result = await session.call_tool(
+                        "get_road_features_in_bbox", 
+                        arguments=bbox_args
+                    )
+                    
+                    print("\n💡 Bounding Box Results (truncated):")
+                    for content in bbox_result.content:
+                        if content.type == "text":
+                            print(content.text[:500] + "...")
+                        else:
+                            print(str(content)[:500] + "...")
+                except Exception as e:
+                    logger.error(f"Failed to execute bbox tool: {e}")
+
     except Exception as e:
         logger.error(f"Connection error: {e}")
 
