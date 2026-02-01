@@ -5,8 +5,7 @@ import traceback
 
 
 def main():
-    # today = date.today()
-    today = date(2025, 12, 23)
+    today = date(2026, 2, 1)
 
     print(f"Starting statistics calculation for {today}...")
 
