@@ -1,48 +1,74 @@
 import asyncio
-from mcp import ClientSession, StdioServerParameters
+import os
+import logging
+from mcp import ClientSession
 from mcp.client.sse import sse_client
 
-# Adresa tvého serveru
-# Traefik to přesměruje z /mcp/sse na /sse uvnitř kontejneru
-# MCP_SERVER_URL = "https://api.clearway.zephyron.tech/mcp/sse"
-MCP_SERVER_URL = "http://localhost:8001/sse"       
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
 
-async def run():
-    print(f"🔌 Připojuji se k MCP serveru na: {MCP_SERVER_URL}...")
+# Server configuration
+# Default to localhost for testing, but allow override via environment variable
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8001/sse")
+# Production URL example: "https://api.clearway.zephyron.tech/mcp/sse"
 
-    # Navážeme SSE spojení
-    async with sse_client(MCP_SERVER_URL) as (read_stream, write_stream):
-        print("✅ SSE Spojení navázáno! Inicializuji relaci...")
-        
-        async with ClientSession(read_stream, write_stream) as session:
-            # 1. Inicializace
-            await session.initialize()
-            print("🚀 Session inicializována.")
+async def run_client():
+    """
+    Connects to the ClearWay MCP server via SSE, lists available tools,
+    and executes a test call to the 'get_daily_analytics' tool.
+    """
+    logger.info(f"🔌 Connecting to MCP server at: {MCP_SERVER_URL}...")
 
-            # 2. Výpis dostupných nástrojů (Tools)
-            print("\n📋 Dostupné nástroje (Tools):")
-            tools = await session.list_tools()
-            for tool in tools.tools:
-                print(f"  - {tool.name}: {tool.description}")
-
-            # 3. Testovací volání nástroje: get_daily_analytics
-            # Zkusíme si vyžádat data pro dnešek
-            target_date = "2026-02-01"
-            print(f"\n📞 Volám nástroj 'get_daily_analytics' pro datum {target_date}...")
+    try:
+        # Establish SSE connection
+        async with sse_client(MCP_SERVER_URL) as (read_stream, write_stream):
+            logger.info("✅ SSE connection established. Initializing session...")
             
-            result = await session.call_tool(
-                "get_daily_analytics",
-                arguments={"target_date": target_date}
-            )
+            async with ClientSession(read_stream, write_stream) as session:
+                # 1. Initialize session
+                await session.initialize()
+                logger.info("🚀 Session successfully initialized.")
 
-            # 4. Výpis výsledku
-            print("\n💡 Odpověď serveru:")
-            # MCP vrací seznam obsahů (text, image, atd.)
-            for content in result.content:
-                if content.type == "text":
-                    print(content.text)
-                else:
-                    print(content)
+                # 2. List available tools
+                logger.info("Fetching available tools...")
+                tools = await session.list_tools()
+                
+                print("\n📋 Available Tools:")
+                for tool in tools.tools:
+                    print(f"  - {tool.name}: {tool.description}")
+                print("-" * 50)
+
+                # 3. Test execution: get_daily_analytics
+                target_date = "2026-02-01"
+                logger.info(f"📞 Invoking tool 'get_daily_analytics' for date: {target_date}...")
+                
+                try:
+                    result = await session.call_tool(
+                        "get_daily_analytics",
+                        arguments={"target_date": target_date}
+                    )
+
+                    # 4. Display results
+                    print("\n💡 Server Response:")
+                    for content in result.content:
+                        if content.type == "text":
+                            print(content.text)
+                        else:
+                            print(content)
+                            
+                except Exception as e:
+                    logger.error(f"Failed to execute tool: {e}")
+
+    except Exception as e:
+        logger.error(f"Connection error: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(run())
+    try:
+        asyncio.run(run_client())
+    except KeyboardInterrupt:
+        logger.info("Client stopped by user.")
