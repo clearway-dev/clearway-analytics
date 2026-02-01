@@ -29,7 +29,7 @@ services:
       - db_internal
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.mcp.rule=Host(`api.clearway.zephyron.tech`) && PathPrefix(`/mcp`)"
+      - "traefik.http.routers.mcp.rule=Host(`api.clearway.zephyron.tech`) && (PathPrefix(`/mcp`) || PathPrefix(`/messages`))"
       - "traefik.http.routers.mcp.entrypoints=websecure"
       - "traefik.http.routers.mcp.tls.certresolver=myresolver"
       - "traefik.docker.network=web_proxy"
