@@ -18,7 +18,7 @@ services:
 
   backend-mcp:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER}/clearway-backend:latest
-    command: fastmcp run app.mcp.server:mcp --transport sse --port 8001 --host 0.0.0.0
+    command: fastmcp run app/mcp/server.py:mcp --transport sse --port 8001 --host 0.0.0.0
     restart: always
     env_file:
       - .env
