@@ -111,7 +111,7 @@ def seed_obstacles():
                 cleaned_width=random.uniform(240.0, 290.0),
                 quality_score=random.uniform(0.8, 1.0),
                 geom=WKTElement(f'POINT({lon} {lat})', srid=4326),
-                created_at=datetime.datetime.now()
+                created_at=datetime.datetime(2026, 2, 2)
             )
             cluster_points.append(meas)
             
