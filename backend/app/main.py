@@ -9,6 +9,7 @@ import json
 from app.services.analytics_service import AnalyticsService
 from app.services.dashboard_service import DashboardService
 from app.services.ml_service import MLService
+from app.api.endpoints import maps, vehicles
 
 # Initialize the FastAPI application with metadata
 app = FastAPI(
@@ -37,6 +38,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 # --------------------------------------------------------------------------
+
+app.include_router(maps.router, prefix="/api/maps", tags=["maps"])
+app.include_router(vehicles.router, prefix="/api/vehicles", tags=["vehicles"])
 
 @app.get("/")
 async def root():

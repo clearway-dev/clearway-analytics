@@ -44,7 +44,7 @@ async def run_client():
                 print("-" * 50)
 
                 # 3. Test execution: get_daily_analytics
-                target_date = "2026-02-02"
+                target_date = "2026-02-18"
                 logger.info(f"📞 Invoking tool 'get_daily_analytics' for date: {target_date}...")
                 
                 try:
