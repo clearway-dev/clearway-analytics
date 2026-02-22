@@ -1,16 +1,24 @@
 import type { LatLngTuple } from "leaflet";
-import { useEffect, useState } from "react";
-import { MapContainer, TileLayer, GeoJSON, useMap } from "react-leaflet";
-import type { GeoJsonObject, Feature, Geometry } from "geojson";
+import { useCallback, useEffect, useState } from "react";
+import { GeoJSON, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import type { Feature, GeoJsonObject, Geometry } from "geojson";
 import type { Layer } from "leaflet";
 import ObstacleLayer, { type ObstacleFeature } from "./ObstacleLayer";
 
-interface SegmentData {
+export interface SegmentData {
   segment_id: string;
   name: string;
-  avg_width: number;
-  measurements_count: number;
-  status: "ok" | "narrow";
+  avg_width: number | null;
+  min_width: number | null;
+  measurements_count: number | null;
+  status: "ok" | "narrow" | "no_data";
+}
+
+interface SegmentProperties {
+  name: string | null;
+  avg_width: number | null;
+  min_width: number | null;
+  measurements_count: number | null;
 }
 
 interface MapComponentProps {
@@ -21,22 +29,67 @@ interface MapComponentProps {
   obstacles?: ObstacleFeature[];
 }
 
-type SegmentFeature = Feature<Geometry, SegmentData>;
+type SegmentFeature = Feature<Geometry, SegmentProperties>;
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+// -----------------------------------------------------------------------
+// Fly-to controller
+// -----------------------------------------------------------------------
 function MapController({ target }: { target: LatLngTuple | null }) {
   const map = useMap();
-
   useEffect(() => {
     if (target) {
-      map.flyTo(target, 16, {
-        duration: 1.5
-      });
+      map.flyTo(target, 16, { duration: 1.5 });
     }
   }, [target, map]);
+  return null;
+}
+
+// -----------------------------------------------------------------------
+// Bbox loader — fetches segments for current viewport on mount + moveend
+// -----------------------------------------------------------------------
+function BboxLoader({
+  selectedDate,
+  onData,
+}: {
+  selectedDate: string;
+  onData: (data: GeoJsonObject) => void;
+}) {
+  const map = useMap();
+
+  const fetchBbox = useCallback(async () => {
+    const b = map.getBounds();
+    const params = new URLSearchParams({
+      min_lat: b.getSouth().toString(),
+      min_lon: b.getWest().toString(),
+      max_lat: b.getNorth().toString(),
+      max_lon: b.getEast().toString(),
+      target_date: selectedDate,
+    });
+    try {
+      const res = await fetch(`${API_URL}/api/maps/bbox?${params}`);
+      const data = await res.json();
+      onData(data);
+    } catch (err) {
+      console.error("Error fetching road segments:", err);
+    }
+  }, [map, selectedDate, onData]);
+
+  // Fire on mount and whenever selectedDate changes
+  useEffect(() => {
+    fetchBbox();
+  }, [fetchBbox]);
+
+  // Fire on every pan / zoom
+  useMapEvents({ moveend: fetchBbox });
 
   return null;
 }
 
+// -----------------------------------------------------------------------
+// Main component
+// -----------------------------------------------------------------------
 export default function MapComponent({
   onSegmentSelect,
   vehicleWidth,
@@ -45,38 +98,24 @@ export default function MapComponent({
   obstacles = [],
 }: MapComponentProps) {
   const position: LatLngTuple = [49.7384, 13.3736];
-
   const [geoJsonData, setGeoJsonData] = useState<GeoJsonObject | null>(null);
-  const [loadedDate, setLoadedDate] = useState<string | null>(null);
+  const [dataVersion, setDataVersion] = useState(0);
 
-  const loading = selectedDate !== loadedDate;
+  const handleData = useCallback((data: GeoJsonObject) => {
+    setGeoJsonData(data);
+    setDataVersion((v) => v + 1);
+  }, []);
 
-  useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
-    fetch(`${apiUrl}/api/map/segments?target_date=${selectedDate}`)
-      .then((res) => res.json())
-      .then((data) => {
-        console.log(`Data loaded for ${selectedDate}:`, data);
-        setGeoJsonData(data);
-        setLoadedDate(selectedDate);
-      })
-      .catch((err) => {
-        console.error("Error fetching map data:", err);
-        setLoadedDate(selectedDate); 
-      });
-  }, [selectedDate]);
+  // Re-key GeoJSON when vehicleWidth changes so colors update immediately
+  const geoJsonKey = `${dataVersion}-${vehicleWidth}`;
 
   const styleFeature = (feature?: SegmentFeature) => {
-    if (!feature || !feature.properties) {
-      return {};
+    const avgWidth = feature?.properties?.avg_width;
+    if (avgWidth == null) {
+      return { color: "#aaaaaa", weight: 2, opacity: 0.5 };
     }
-
-    const avgWidth = feature.properties.avg_width;
-    const isPassable = avgWidth >= vehicleWidth + 0.5;
-
     return {
-      color: isPassable ? "#2ecc71" : "#e74c3c",
+      color: avgWidth >= vehicleWidth ? "#2ecc71" : "#e74c3c",
       weight: 4,
       opacity: 0.9,
     };
@@ -85,9 +124,19 @@ export default function MapComponent({
   const onEachFeature = (feature: SegmentFeature, layer: Layer) => {
     layer.on({
       click: () => {
-        if (feature.properties) {
-          onSegmentSelect(feature.properties);
-        }
+        const p = feature.properties;
+        if (!p) return;
+        const avg = p.avg_width;
+        const status =
+          avg == null ? "no_data" : avg >= vehicleWidth ? "ok" : "narrow";
+        onSegmentSelect({
+          segment_id: feature.id as string,
+          name: p.name ?? "Unknown Road",
+          avg_width: avg,
+          min_width: p.min_width,
+          measurements_count: p.measurements_count,
+          status,
+        });
       },
     });
   };
@@ -100,13 +149,14 @@ export default function MapComponent({
       zoomControl={false}
     >
       <MapController target={flyToTarget} />
+      <BboxLoader selectedDate={selectedDate} onData={handleData} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {!loading && geoJsonData && (
+      {geoJsonData && (
         <GeoJSON
-          key={`geo-data-${vehicleWidth}-${selectedDate}`}
+          key={geoJsonKey}
           data={geoJsonData}
           style={styleFeature}
           onEachFeature={onEachFeature}

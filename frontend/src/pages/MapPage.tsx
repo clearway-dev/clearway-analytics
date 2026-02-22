@@ -1,19 +1,11 @@
 import BottomSheet from "../components/BottomSheet";
 import FloatingPanel from "../components/FloatingPanel";
-import MapComponent from "../components/MapComponent";
+import MapComponent, { type SegmentData } from "../components/MapComponent";
 import { useState, useEffect } from "react";
 import type { LatLngTuple } from "leaflet";
 import { useSearchParams } from "react-router-dom";
 import type { ObstacleFeature } from "../components/ObstacleLayer";
 import { fetchAvailableDates } from "../services/api";
-
-interface SegmentData {
-  segment_id: string;
-  name: string;
-  avg_width: number;
-  measurements_count: number;
-  status: "ok" | "narrow";
-}
 
 export default function MapPage() {
   const [searchParams] = useSearchParams();
