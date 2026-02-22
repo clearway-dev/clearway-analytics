@@ -21,21 +21,17 @@ class VehicleBody(BaseModel):
     width: Optional[float] = None
     height: Optional[float] = None
     weight: Optional[float] = None
-    turning_radius_inner: Optional[float] = None
-    turning_radius_outer: Optional[float] = None
+    length: Optional[float] = None
+    turning_diameter_track: Optional[float] = None
+    turning_diameter_clearance: Optional[float] = None
+    stabilization_width: Optional[float] = None
 
     @model_validator(mode="after")
-    def check_positive_and_radii(self) -> "VehicleBody":
-        for field in ("width", "height", "weight", "turning_radius_inner", "turning_radius_outer"):
+    def check_positive(self) -> "VehicleBody":
+        for field in ("width", "height", "weight", "length", "turning_diameter_track", "turning_diameter_clearance", "stabilization_width"):
             value = getattr(self, field)
             if value is not None and value <= 0:
                 raise ValueError(f"{field} must be greater than 0")
-        if (
-            self.turning_radius_inner is not None
-            and self.turning_radius_outer is not None
-            and self.turning_radius_outer < self.turning_radius_inner
-        ):
-            raise ValueError("turning_radius_outer must be >= turning_radius_inner")
         return self
 
 
@@ -47,10 +43,11 @@ def _to_dict(v: TargetVehicle) -> dict:
         "width": v.width,
         "height": v.height,
         "weight": v.weight,
-        "turning_radius_inner": v.turning_radius_inner,
-        "turning_radius_outer": v.turning_radius_outer,
+        "length": v.length,
+        "turning_diameter_track": v.turning_diameter_track,
+        "turning_diameter_clearance": v.turning_diameter_clearance,
+        "stabilization_width": v.stabilization_width,
         "created_at": v.created_at.isoformat() if v.created_at else None,
-        "updated_at": v.updated_at.isoformat() if v.updated_at else None,
     }
 
 

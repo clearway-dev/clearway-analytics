@@ -1,9 +1,18 @@
 import { useEffect, useState } from "react";
 import { Pencil, Trash2, Plus, X } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import {
-  Table, TableHeader, TableBody, TableRow,
-  TableHead, TableCell,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../components/ui/card";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
 } from "../components/ui/table";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
@@ -28,8 +37,10 @@ interface TargetVehicle {
   width: number | null;
   height: number | null;
   weight: number | null;
-  turning_radius_inner: number | null;
-  turning_radius_outer: number | null;
+  length: number | null;
+  turning_diameter_track: number | null;
+  turning_diameter_clearance: number | null;
+  stabilization_width: number | null;
 }
 
 interface FormState {
@@ -38,8 +49,10 @@ interface FormState {
   width: string;
   height: string;
   weight: string;
-  turning_radius_inner: string;
-  turning_radius_outer: string;
+  length: string;
+  turning_diameter_track: string;
+  turning_diameter_clearance: string;
+  stabilization_width: string;
 }
 
 const EMPTY_FORM: FormState = {
@@ -48,8 +61,10 @@ const EMPTY_FORM: FormState = {
   width: "",
   height: "",
   weight: "",
-  turning_radius_inner: "",
-  turning_radius_outer: "",
+  length: "",
+  turning_diameter_track: "",
+  turning_diameter_clearance: "",
+  stabilization_width: "",
 };
 
 function toFormState(v: TargetVehicle): FormState {
@@ -59,8 +74,15 @@ function toFormState(v: TargetVehicle): FormState {
     width: v.width != null ? String(v.width) : "",
     height: v.height != null ? String(v.height) : "",
     weight: v.weight != null ? String(v.weight) : "",
-    turning_radius_inner: v.turning_radius_inner != null ? String(v.turning_radius_inner) : "",
-    turning_radius_outer: v.turning_radius_outer != null ? String(v.turning_radius_outer) : "",
+    length: v.length != null ? String(v.length) : "",
+    turning_diameter_track:
+      v.turning_diameter_track != null ? String(v.turning_diameter_track) : "",
+    turning_diameter_clearance:
+      v.turning_diameter_clearance != null
+        ? String(v.turning_diameter_clearance)
+        : "",
+    stabilization_width:
+      v.stabilization_width != null ? String(v.stabilization_width) : "",
   };
 }
 
@@ -144,8 +166,12 @@ export default function VehiclesPage() {
       width: parseOptionalFloat(form.width),
       height: parseOptionalFloat(form.height),
       weight: parseOptionalFloat(form.weight),
-      turning_radius_inner: parseOptionalFloat(form.turning_radius_inner),
-      turning_radius_outer: parseOptionalFloat(form.turning_radius_outer),
+      length: parseOptionalFloat(form.length),
+      turning_diameter_track: parseOptionalFloat(form.turning_diameter_track),
+      turning_diameter_clearance: parseOptionalFloat(
+        form.turning_diameter_clearance,
+      ),
+      stabilization_width: parseOptionalFloat(form.stabilization_width),
     };
 
     setSaving(true);
@@ -174,7 +200,7 @@ export default function VehiclesPage() {
       setVehicles((prev) =>
         editingId
           ? prev.map((v) => (v.id === editingId ? saved : v))
-          : [...prev, saved].sort((a, b) => a.name.localeCompare(b.name))
+          : [...prev, saved].sort((a, b) => a.name.localeCompare(b.name)),
       );
       setModalOpen(false);
     } catch {
@@ -231,7 +257,7 @@ export default function VehiclesPage() {
       </div>
 
       {/* Table */}
-      <div className="flex-1 p-6 pt-2 overflow-y-auto">
+      <div className="flex-1 p-6 pt-2 overflow-auto">
         <Card>
           <CardHeader className="p-4 pb-2">
             <CardTitle className="text-sm text-gray-500 font-normal">
@@ -245,17 +271,22 @@ export default function VehiclesPage() {
                   <TableHead>Název</TableHead>
                   <TableHead>Kategorie</TableHead>
                   <TableHead>Šířka</TableHead>
+                  <TableHead>Délka</TableHead>
                   <TableHead>Výška</TableHead>
                   <TableHead>Hmotnost</TableHead>
-                  <TableHead>Vnitřní poloměr</TableHead>
-                  <TableHead>Vnější poloměr</TableHead>
+                  <TableHead>Průměr otáčení (stopový)</TableHead>
+                  <TableHead>Průměr otáčení (obrysový)</TableHead>
+                  <TableHead>Šířka s patkami</TableHead>
                   <TableHead className="w-[80px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {vehicles.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center text-gray-400 py-10">
+                    <TableCell
+                      colSpan={10}
+                      className="text-center text-gray-400 py-10"
+                    >
                       Žádná vozidla. Přidejte první záznam.
                     </TableCell>
                   </TableRow>
@@ -265,10 +296,14 @@ export default function VehiclesPage() {
                     <TableCell className="font-medium">{v.name}</TableCell>
                     <TableCell>{categoryLabel(v.category)}</TableCell>
                     <TableCell>{fmt(v.width, "m")}</TableCell>
+                    <TableCell>{fmt(v.length, "m")}</TableCell>
                     <TableCell>{fmt(v.height, "m")}</TableCell>
                     <TableCell>{fmt(v.weight, "t")}</TableCell>
-                    <TableCell>{fmt(v.turning_radius_inner, "m")}</TableCell>
-                    <TableCell>{fmt(v.turning_radius_outer, "m")}</TableCell>
+                    <TableCell>{fmt(v.turning_diameter_track, "m")}</TableCell>
+                    <TableCell>
+                      {fmt(v.turning_diameter_clearance, "m")}
+                    </TableCell>
+                    <TableCell>{fmt(v.stabilization_width, "m")}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <button
@@ -301,12 +336,9 @@ export default function VehiclesPage() {
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           {/* backdrop */}
-          <div
-            className="absolute inset-0 bg-black/40"
-            onClick={closeModal}
-          />
+          <div className="absolute inset-0 bg-black/40" onClick={closeModal} />
           {/* panel */}
-          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6">
+          <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-5">
               <h3 className="text-lg font-semibold text-gray-900">
                 {editingId ? "Upravit vozidlo" : "Nové vozidlo"}
@@ -331,7 +363,7 @@ export default function VehiclesPage() {
                   value={form.name}
                   onChange={(e) => handleField("name", e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="např. Tatra 815"
+                  placeholder="např. CAS 24 SCANIA"
                 />
               </div>
 
@@ -359,13 +391,18 @@ export default function VehiclesPage() {
                 {(
                   [
                     ["width", "Šířka (m)"],
+                    ["length", "Délka (m)"],
                     ["height", "Výška (m)"],
                     ["weight", "Hmotnost (t)"],
-                    ["turning_radius_inner", "Vnitřní poloměr otáčení (m)"],
-                    ["turning_radius_outer", "Vnější poloměr otáčení (m)"],
+                    ["turning_diameter_track", "Průměr otáčení stopový (m)"],
+                    [
+                      "turning_diameter_clearance",
+                      "Průměr otáčení obrysový (m)",
+                    ],
+                    ["stabilization_width", "Šířka s patkami (m)"],
                   ] as [keyof FormState, string][]
                 ).map(([field, label]) => (
-                  <div key={field} className={field === "turning_radius_outer" && form.turning_radius_inner === "" ? "" : ""}>
+                  <div key={field}>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       {label}
                     </label>
@@ -382,9 +419,7 @@ export default function VehiclesPage() {
                 ))}
               </div>
 
-              {formError && (
-                <p className="text-sm text-red-500">{formError}</p>
-              )}
+              {formError && <p className="text-sm text-red-500">{formError}</p>}
             </div>
 
             {/* Actions */}
@@ -421,9 +456,7 @@ export default function VehiclesPage() {
             <h3 className="text-base font-semibold text-gray-900 mb-2">
               Smazat vozidlo?
             </h3>
-            <p className="text-sm text-gray-500 mb-5">
-              Tato akce je nevratná.
-            </p>
+            <p className="text-sm text-gray-500 mb-5">Tato akce je nevratná.</p>
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => setDeleteId(null)}
