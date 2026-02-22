@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Calendar } from "./ui/calendar";
 import { format } from "date-fns";
-import { Search, CalendarIcon, ChevronDown } from "lucide-react";
+import { Search, CalendarIcon, ChevronDown, Navigation, X, Loader2 } from "lucide-react";
+import type { LatLngTuple } from "leaflet";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -28,6 +29,15 @@ interface FloatingPanelProps {
   setIsLiveMode: (isLive: boolean) => void;
   onSearchResultSelect: (lat: number, lon: number) => void;
   availableDates: string[];
+  // Routing
+  routingMode: boolean;
+  onToggleRouting: () => void;
+  onClearRoute: () => void;
+  routeStart: LatLngTuple | null;
+  routeEnd: LatLngTuple | null;
+  routeLoading: boolean;
+  routeError: string | null;
+  routeDistance: number | null;
 }
 
 function formatDisplayDate(isoDate: string): string {
@@ -45,6 +55,14 @@ export default function FloatingPanel({
   setIsLiveMode,
   onSearchResultSelect,
   availableDates,
+  routingMode,
+  onToggleRouting,
+  onClearRoute,
+  routeStart,
+  routeEnd,
+  routeLoading,
+  routeError,
+  routeDistance,
 }: FloatingPanelProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
@@ -306,6 +324,70 @@ export default function FloatingPanel({
           <p className="text-xs text-gray-400 text-center">
             Showing data from {formatDisplayDate(mapDate)}
           </p>
+        )}
+      </div>
+
+      {/* 4. Route Finder */}
+      <div className="mt-4 pt-4 border-t border-gray-100">
+        <div className="flex items-center justify-between mb-2">
+          <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+            Route Finder
+          </label>
+          {routingMode && (
+            <button
+              onClick={onClearRoute}
+              className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-3 h-3" />
+              Clear
+            </button>
+          )}
+        </div>
+
+        <button
+          onClick={onToggleRouting}
+          className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
+            routingMode
+              ? "bg-blue-600 text-white hover:bg-blue-700"
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+        >
+          <Navigation className="w-4 h-4" />
+          {routingMode ? "Routing active" : "Find Route"}
+        </button>
+
+        {/* Status */}
+        {routingMode && (
+          <div className="mt-2 text-xs text-gray-500 space-y-1">
+            {routeLoading && (
+              <div className="flex items-center gap-1.5 text-blue-600">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                Calculating route…
+              </div>
+            )}
+            {!routeLoading && !routeStart && (
+              <p className="flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+                Click start point on map
+              </p>
+            )}
+            {!routeLoading && routeStart && !routeEnd && (
+              <p className="flex items-center gap-1.5">
+                <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
+                Click end point on map
+              </p>
+            )}
+            {!routeLoading && routeDistance != null && (
+              <p className="font-medium text-gray-700">
+                Route: {routeDistance >= 1000
+                  ? `${(routeDistance / 1000).toFixed(2)} km`
+                  : `${routeDistance} m`}
+              </p>
+            )}
+            {!routeLoading && routeError && (
+              <p className="text-red-500">{routeError}</p>
+            )}
+          </div>
         )}
       </div>
     </div>

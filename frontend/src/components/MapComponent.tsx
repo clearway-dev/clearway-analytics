@@ -1,6 +1,13 @@
 import type { LatLngTuple } from "leaflet";
 import { useCallback, useEffect, useState } from "react";
-import { GeoJSON, MapContainer, TileLayer, useMap, useMapEvents } from "react-leaflet";
+import {
+  CircleMarker,
+  GeoJSON,
+  MapContainer,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import type { Feature, GeoJsonObject, Geometry } from "geojson";
 import type { Layer } from "leaflet";
 import ObstacleLayer, { type ObstacleFeature } from "./ObstacleLayer";
@@ -27,6 +34,12 @@ interface MapComponentProps {
   selectedDate: string;
   flyToTarget: LatLngTuple | null;
   obstacles?: ObstacleFeature[];
+  // Routing
+  routingMode: boolean;
+  onRouteMapClick: (lat: number, lon: number) => void;
+  routeGeoJson: GeoJsonObject | null;
+  routeStart: LatLngTuple | null;
+  routeEnd: LatLngTuple | null;
 }
 
 type SegmentFeature = Feature<Geometry, SegmentProperties>;
@@ -76,14 +89,32 @@ function BboxLoader({
     }
   }, [map, selectedDate, onData]);
 
-  // Fire on mount and whenever selectedDate changes
   useEffect(() => {
     fetchBbox();
   }, [fetchBbox]);
 
-  // Fire on every pan / zoom
   useMapEvents({ moveend: fetchBbox });
 
+  return null;
+}
+
+// -----------------------------------------------------------------------
+// Routing click handler
+// -----------------------------------------------------------------------
+function RoutingClickHandler({
+  enabled,
+  onClick,
+}: {
+  enabled: boolean;
+  onClick: (lat: number, lon: number) => void;
+}) {
+  useMapEvents({
+    click: (e) => {
+      if (enabled) {
+        onClick(e.latlng.lat, e.latlng.lng);
+      }
+    },
+  });
   return null;
 }
 
@@ -96,6 +127,11 @@ export default function MapComponent({
   selectedDate,
   flyToTarget,
   obstacles = [],
+  routingMode,
+  onRouteMapClick,
+  routeGeoJson,
+  routeStart,
+  routeEnd,
 }: MapComponentProps) {
   const position: LatLngTuple = [49.7384, 13.3736];
   const [geoJsonData, setGeoJsonData] = useState<GeoJsonObject | null>(null);
@@ -106,7 +142,6 @@ export default function MapComponent({
     setDataVersion((v) => v + 1);
   }, []);
 
-  // Re-key GeoJSON when vehicleWidth changes so colors update immediately
   const geoJsonKey = `${dataVersion}-${vehicleWidth}`;
 
   const styleFeature = (feature?: SegmentFeature) => {
@@ -124,6 +159,7 @@ export default function MapComponent({
   const onEachFeature = (feature: SegmentFeature, layer: Layer) => {
     layer.on({
       click: () => {
+        if (routingMode) return; // clicks handled by RoutingClickHandler
         const p = feature.properties;
         if (!p) return;
         const avg = p.avg_width;
@@ -145,15 +181,19 @@ export default function MapComponent({
     <MapContainer
       center={position}
       zoom={13}
-      className="h-full w-full"
+      className={`h-full w-full${routingMode ? " cursor-crosshair" : ""}`}
       zoomControl={false}
     >
       <MapController target={flyToTarget} />
       <BboxLoader selectedDate={selectedDate} onData={handleData} />
+      <RoutingClickHandler enabled={routingMode} onClick={onRouteMapClick} />
+
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+
+      {/* Road network */}
       {geoJsonData && (
         <GeoJSON
           key={geoJsonKey}
@@ -162,6 +202,34 @@ export default function MapComponent({
           onEachFeature={onEachFeature}
         />
       )}
+
+      {/* Computed route */}
+      {routeGeoJson && (
+        <GeoJSON
+          key={`route-${JSON.stringify(routeGeoJson).length}`}
+          data={routeGeoJson}
+          style={{ color: "#3b82f6", weight: 6, opacity: 0.85 }}
+        />
+      )}
+
+      {/* Route start marker */}
+      {routeStart && (
+        <CircleMarker
+          center={routeStart}
+          radius={8}
+          pathOptions={{ color: "#16a34a", fillColor: "#22c55e", fillOpacity: 1, weight: 2 }}
+        />
+      )}
+
+      {/* Route end marker */}
+      {routeEnd && (
+        <CircleMarker
+          center={routeEnd}
+          radius={8}
+          pathOptions={{ color: "#b91c1c", fillColor: "#ef4444", fillOpacity: 1, weight: 2 }}
+        />
+      )}
+
       <ObstacleLayer obstacles={obstacles} />
     </MapContainer>
   );

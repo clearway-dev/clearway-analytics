@@ -6,82 +6,132 @@ import type { LatLngTuple } from "leaflet";
 import { useSearchParams } from "react-router-dom";
 import type { ObstacleFeature } from "../components/ObstacleLayer";
 import { fetchAvailableDates } from "../services/api";
+import type { GeoJsonObject } from "geojson";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export default function MapPage() {
   const [searchParams] = useSearchParams();
-  
-  // Read params immediately for initial state
+
   const urlDate = searchParams.get("date");
   const urlLat = searchParams.get("lat");
   const urlLon = searchParams.get("lon");
 
-  const [selectedSegment, setSelectedSegment] = useState<SegmentData | null>(
-    null
-  );
-  
+  const [selectedSegment, setSelectedSegment] = useState<SegmentData | null>(null);
   const [vehicleWidth, setVehicleWidth] = useState<number>(250);
-  
-  // Initialize state from URL params to prevent cascading renders and ensure data loads immediately
+
   const [selectedDate, setSelectedDate] = useState<string>(() => {
-    return urlDate || new Date().toISOString().split('T')[0];
+    return urlDate || new Date().toISOString().split("T")[0];
   });
 
-  const [isLiveMode, setIsLiveMode] = useState<boolean>(() => {
-    return !urlDate; // If date is provided, we are in history mode
-  });
+  const [isLiveMode, setIsLiveMode] = useState<boolean>(() => !urlDate);
 
   const [flyToTarget, setFlyToTarget] = useState<LatLngTuple | null>(() => {
-    if (urlLat && urlLon) {
-      return [parseFloat(urlLat), parseFloat(urlLon)];
-    }
+    if (urlLat && urlLon) return [parseFloat(urlLat), parseFloat(urlLon)];
     return null;
   });
 
   const [obstacles, setObstacles] = useState<ObstacleFeature[]>([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
 
-  // In latest mode always use the most recent available date, no state sync needed
-  const mapDate = isLiveMode && availableDates.length > 0 ? availableDates[0] : selectedDate;
+  // In latest mode always use the most recent available date — derived, no state sync needed
+  const mapDate =
+    isLiveMode && availableDates.length > 0 ? availableDates[0] : selectedDate;
 
-  // Fetch available dates on mount
+  // ------------------------------------------------------------------
+  // Routing state
+  // ------------------------------------------------------------------
+  const [routingMode, setRoutingMode] = useState(false);
+  const [routeStart, setRouteStart] = useState<LatLngTuple | null>(null);
+  const [routeEnd, setRouteEnd] = useState<LatLngTuple | null>(null);
+  const [routeGeoJson, setRouteGeoJson] = useState<GeoJsonObject | null>(null);
+  const [routeLoading, setRouteLoading] = useState(false);
+  const [routeError, setRouteError] = useState<string | null>(null);
+  const [routeDistance, setRouteDistance] = useState<number | null>(null);
+
+  // ------------------------------------------------------------------
+  // Data loading
+  // ------------------------------------------------------------------
   useEffect(() => {
     fetchAvailableDates().then(setAvailableDates);
   }, []);
 
-  // Fetch obstacles when date changes (only in history mode)
   useEffect(() => {
     if (!isLiveMode && selectedDate) {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-      fetch(`${apiUrl}/api/analytics/obstacles?target_date=${selectedDate}`)
+      fetch(`${API_URL}/api/analytics/obstacles?target_date=${selectedDate}`)
         .then((res) => res.json())
-        .then((data) => {
-          if (data && data.features) {
-            setObstacles(data.features);
-          } else {
-            setObstacles([]);
-          }
-        })
-        .catch((err) => {
-          console.error("Failed to load obstacles:", err);
-          setObstacles([]);
-        });
+        .then((data) => setObstacles(data?.features ?? []))
+        .catch(() => setObstacles([]));
     }
   }, [selectedDate, isLiveMode]);
 
-  const handleSearchResultSelect = (lat: number, lon: number) => {
-    setFlyToTarget([lat, lon]);
-  };
-
-  const handleLiveModeChange = (isLive: boolean) => {
-    setIsLiveMode(isLive);
-    if (isLive) {
-      setObstacles([]);
+  // ------------------------------------------------------------------
+  // Routing handlers
+  // ------------------------------------------------------------------
+  function handleRouteMapClick(lat: number, lon: number) {
+    if (!routeStart) {
+      setRouteStart([lat, lon]);
+      setRouteGeoJson(null);
+      setRouteError(null);
+      setRouteDistance(null);
+    } else if (!routeEnd) {
+      const end: LatLngTuple = [lat, lon];
+      setRouteEnd(end);
+      fetchRoute(routeStart, end);
     }
-  };
+    // If both are already set, ignore further clicks until user clears
+  }
+
+  async function fetchRoute(start: LatLngTuple, end: LatLngTuple) {
+    setRouteLoading(true);
+    setRouteError(null);
+    try {
+      const res = await fetch(`${API_URL}/api/routing/route`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          start_lat: start[0],
+          start_lon: start[1],
+          end_lat: end[0],
+          end_lon: end[1],
+          vehicle_width_cm: vehicleWidth,
+          target_date: mapDate,
+        }),
+      });
+      const data = await res.json();
+      if (data.status === "ok") {
+        setRouteGeoJson(data.route);
+        setRouteDistance(data.total_distance_m);
+      } else {
+        setRouteError(data.message ?? "Route not found.");
+      }
+    } catch {
+      setRouteError("Network error.");
+    } finally {
+      setRouteLoading(false);
+    }
+  }
+
+  function clearRoute() {
+    setRoutingMode(false);
+    setRouteStart(null);
+    setRouteEnd(null);
+    setRouteGeoJson(null);
+    setRouteError(null);
+    setRouteDistance(null);
+  }
+
+  // ------------------------------------------------------------------
+  // Other handlers
+  // ------------------------------------------------------------------
+  function handleLiveModeChange(isLive: boolean) {
+    setIsLiveMode(isLive);
+    if (isLive) setObstacles([]);
+  }
 
   return (
     <div className="relative h-full w-full overflow-hidden bg-gray-100">
-      {/* 1. Map Layer (Background) */}
+      {/* Map layer */}
       <div className="absolute inset-0 z-0">
         <MapComponent
           onSegmentSelect={setSelectedSegment}
@@ -89,10 +139,15 @@ export default function MapPage() {
           selectedDate={mapDate}
           flyToTarget={flyToTarget}
           obstacles={obstacles}
+          routingMode={routingMode}
+          onRouteMapClick={handleRouteMapClick}
+          routeGeoJson={routeGeoJson}
+          routeStart={routeStart}
+          routeEnd={routeEnd}
         />
       </div>
 
-      {/* 2. Floating Control Panel (Top Left) */}
+      {/* Floating control panel */}
       <FloatingPanel
         vehicleWidth={vehicleWidth}
         setVehicleWidth={setVehicleWidth}
@@ -101,11 +156,30 @@ export default function MapPage() {
         mapDate={mapDate}
         isLiveMode={isLiveMode}
         setIsLiveMode={handleLiveModeChange}
-        onSearchResultSelect={handleSearchResultSelect}
+        onSearchResultSelect={(lat, lon) => setFlyToTarget([lat, lon])}
         availableDates={availableDates}
+        routingMode={routingMode}
+        onToggleRouting={() => {
+          if (routingMode) {
+            clearRoute();
+          } else {
+            setRoutingMode(true);
+            setRouteStart(null);
+            setRouteEnd(null);
+            setRouteGeoJson(null);
+            setRouteError(null);
+            setRouteDistance(null);
+          }
+        }}
+        onClearRoute={clearRoute}
+        routeStart={routeStart}
+        routeEnd={routeEnd}
+        routeLoading={routeLoading}
+        routeError={routeError}
+        routeDistance={routeDistance}
       />
 
-      {/* 3. Bottom Sheet (Details) */}
+      {/* Segment detail bottom sheet */}
       <BottomSheet
         data={selectedSegment}
         onClose={() => setSelectedSegment(null)}
