@@ -11,7 +11,7 @@ from sqlalchemy import inspect, text, func
 from sqlalchemy.exc import IntegrityError
 from app.database import engine, SessionLocal
 from app.services.analytics_service import AnalyticsService
-from app.models import SegmentStatistics
+from app.models import SegmentStatistics, TargetVehicle
 from datetime import datetime, date
 import json
 
@@ -119,6 +119,70 @@ def get_daily_analytics(target_date: str) -> dict:
                 "total_measurements_processed": int(stats.total_measurements) if stats and stats.total_measurements else 0
             }
         }
+
+@mcp.tool()
+def create_vehicle(
+    name: str,
+    category: str | None = None,
+    width: float | None = None,
+    height: float | None = None,
+    weight: float | None = None,
+    length: float | None = None,
+    turning_diameter_track: float | None = None,
+    turning_diameter_clearance: float | None = None,
+    stabilization_width: float | None = None,
+) -> dict:
+    """
+    Inserts a new vehicle into the target_vehicles table.
+
+    All numeric fields are in SI units:
+      - width, height, length, turning_diameter_track,
+        turning_diameter_clearance, stabilization_width  → metres
+      - weight → tonnes
+
+    Args:
+        name: Vehicle name, e.g. "CAS 24 SCANIA" (required).
+        category: Free-text category, e.g. "Cisterna", "Žebřík".
+        width: Vehicle width in metres.
+        height: Vehicle height in metres.
+        weight: Vehicle weight in tonnes.
+        length: Vehicle length in metres.
+        turning_diameter_track: Track turning diameter in metres.
+        turning_diameter_clearance: Clearance turning diameter in metres (nullable).
+        stabilization_width: Width with stabilisers extended in metres (nullable).
+
+    Returns:
+        The saved vehicle record as a dict, including its generated id.
+    """
+    with SessionLocal() as db:
+        vehicle = TargetVehicle(
+            name=name,
+            category=category,
+            width=width,
+            height=height,
+            weight=weight,
+            length=length,
+            turning_diameter_track=turning_diameter_track,
+            turning_diameter_clearance=turning_diameter_clearance,
+            stabilization_width=stabilization_width,
+        )
+        db.add(vehicle)
+        db.commit()
+        db.refresh(vehicle)
+        return {
+            "id": str(vehicle.id),
+            "name": vehicle.name,
+            "category": vehicle.category,
+            "width": vehicle.width,
+            "height": vehicle.height,
+            "weight": vehicle.weight,
+            "length": vehicle.length,
+            "turning_diameter_track": vehicle.turning_diameter_track,
+            "turning_diameter_clearance": vehicle.turning_diameter_clearance,
+            "stabilization_width": vehicle.stabilization_width,
+            "created_at": vehicle.created_at.isoformat() if vehicle.created_at else None,
+        }
+
 
 @mcp.tool()
 def get_road_features_in_bbox(min_lat: float, min_lon: float, max_lat: float, max_lon: float) -> list[dict]:

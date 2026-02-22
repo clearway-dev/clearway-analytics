@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 # Server configuration
 # Default to localhost for testing, but allow override via environment variable
-MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8001/sse")
-# Production URL example: "https://api.clearway.zephyron.tech/mcp/sse"
+# MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "http://localhost:8001/sse")
+MCP_SERVER_URL = os.getenv("MCP_SERVER_URL", "https://api.clearway.zephyron.tech/mcp/sse")
 
 async def run_client():
     """
@@ -44,7 +44,7 @@ async def run_client():
                 print("-" * 50)
 
                 # 3. Test execution: get_daily_analytics
-                target_date = "2026-02-01"
+                target_date = "2026-02-18"
                 logger.info(f"📞 Invoking tool 'get_daily_analytics' for date: {target_date}...")
                 
                 try:
