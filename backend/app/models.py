@@ -97,6 +97,19 @@ class SegmentStatistics(Base):
     segment = relationship("RoadSegment")
 
 
+class Station(Base):
+    __tablename__ = "stations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False)
+    type = Column(String(50), nullable=True)
+    address = Column(String(500), nullable=True)
+    lat = Column(Float, nullable=False)
+    lon = Column(Float, nullable=False)
+    notes = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
 class TargetVehicle(Base):
     __tablename__ = "target_vehicles"
 

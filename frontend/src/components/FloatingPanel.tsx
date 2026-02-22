@@ -19,6 +19,13 @@ interface VehicleOption {
   width: number | null; // metres
 }
 
+interface StationOption {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+}
+
 interface FloatingPanelProps {
   vehicleWidth: number; // cm
   setVehicleWidth: (width: number) => void;
@@ -33,6 +40,7 @@ interface FloatingPanelProps {
   routingMode: boolean;
   onToggleRouting: () => void;
   onClearRoute: () => void;
+  onSelectStationAsStart: (lat: number, lon: number) => void;
   routeStart: LatLngTuple | null;
   routeEnd: LatLngTuple | null;
   routeLoading: boolean;
@@ -58,6 +66,7 @@ export default function FloatingPanel({
   routingMode,
   onToggleRouting,
   onClearRoute,
+  onSelectStationAsStart,
   routeStart,
   routeEnd,
   routeLoading,
@@ -72,33 +81,58 @@ export default function FloatingPanel({
   const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
   const [widthInput, setWidthInput] = useState<string>(String(vehicleWidth));
+  const [stations, setStations] = useState<StationOption[]>([]);
 
   // Keep widthInput in sync when vehicleWidth changes from outside (e.g. vehicle select)
   useEffect(() => {
     setWidthInput(String(vehicleWidth));
   }, [vehicleWidth]);
 
-  // Fetch vehicle list once on mount
+  // Fetch vehicle list and station list once on mount
   useEffect(() => {
     fetch(`${API_URL}/api/vehicles/`)
       .then((r) => r.json())
       .then((data: VehicleOption[]) => setVehicles(data))
       .catch(() => setVehicles([]));
+
+    fetch(`${API_URL}/api/stations/`)
+      .then((r) => r.json())
+      .then((data: StationOption[]) => setStations(data))
+      .catch(() => setStations([]));
   }, []);
 
-  // Debounced road search
+  // Debounced address search via Nominatim
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchQuery.length >= 2) {
+      if (searchQuery.length >= 3) {
         setIsSearchLoading(true);
-        fetch(`${API_URL}/api/roads/search?q=${encodeURIComponent(searchQuery)}`)
+        const params = new URLSearchParams({
+          q: searchQuery,
+          format: "json",
+          limit: "6",
+          addressdetails: "1",
+          countrycodes: "cz",
+        });
+        fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
+          headers: { "User-Agent": "ClearWayAnalytics/1.0 (thesis project)" },
+        })
           .then((r) => r.json())
-          .then((data) => { setSearchResults(data); setIsSearchLoading(false); })
+          .then((data: { place_id: string; lat: string; lon: string; display_name: string }[]) => {
+            setSearchResults(
+              data.map((item) => ({
+                id: item.place_id,
+                name: item.display_name,
+                center_lat: parseFloat(item.lat),
+                center_lon: parseFloat(item.lon),
+              }))
+            );
+            setIsSearchLoading(false);
+          })
           .catch(() => { setIsSearchLoading(false); setSearchResults([]); });
       } else {
         setSearchResults([]);
       }
-    }, 300);
+    }, 400);
     return () => clearTimeout(timer);
   }, [searchQuery]);
 
@@ -355,6 +389,29 @@ export default function FloatingPanel({
           <Navigation className="w-4 h-4" />
           {routingMode ? "Routing active" : "Find Route"}
         </button>
+
+        {/* Station as route start */}
+        {stations.length > 0 && (
+          <div className="relative mt-2">
+            <select
+              defaultValue=""
+              onChange={(e) => {
+                const station = stations.find((s) => s.id === e.target.value);
+                if (station) {
+                  onSelectStationAsStart(station.lat, station.lon);
+                  e.target.value = "";
+                }
+              }}
+              className="w-full appearance-none border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 truncate"
+            >
+              <option value="" disabled>Start ze stanice…</option>
+              {stations.map((s) => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
+            <ChevronDown className="absolute right-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
+          </div>
+        )}
 
         {/* Status */}
         {routingMode && (

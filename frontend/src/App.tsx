@@ -4,6 +4,7 @@ import AdminPage from "./pages/AdminPage";
 import Layout from "./components/Layout";
 import RoadNetworkMap from "./components/RoadNetworkMap";
 import VehiclesPage from "./pages/VehiclesPage";
+import StationsPage from "./pages/StationsPage";
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
           <Route path="/" element={<MapPage />} />
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/vehicles" element={<VehiclesPage />} />
+          <Route path="/stations" element={<StationsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

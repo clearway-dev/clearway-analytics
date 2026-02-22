@@ -112,6 +112,26 @@ export default function MapPage() {
     }
   }
 
+  function handleSelectStationAsStart(lat: number, lon: number) {
+    if (!routingMode) setRoutingMode(true);
+    setRouteStart([lat, lon]);
+    setRouteEnd(null);
+    setRouteGeoJson(null);
+    setRouteDistance(null);
+    setRouteError(null);
+  }
+
+  // Recalculate existing route when vehicle width changes (debounced)
+  useEffect(() => {
+    if (!routeStart || !routeEnd) return;
+    const timer = setTimeout(() => {
+      fetchRoute(routeStart, routeEnd);
+    }, 500);
+    return () => clearTimeout(timer);
+  // fetchRoute is stable — only trigger on vehicleWidth change
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vehicleWidth]);
+
   function clearRoute() {
     setRoutingMode(false);
     setRouteStart(null);
@@ -159,6 +179,7 @@ export default function MapPage() {
         onSearchResultSelect={(lat, lon) => setFlyToTarget([lat, lon])}
         availableDates={availableDates}
         routingMode={routingMode}
+        onSelectStationAsStart={handleSelectStationAsStart}
         onToggleRouting={() => {
           if (routingMode) {
             clearRoute();
