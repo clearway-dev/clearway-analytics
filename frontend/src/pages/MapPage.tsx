@@ -40,6 +40,9 @@ export default function MapPage() {
   const [obstacles, setObstacles] = useState<ObstacleFeature[]>([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
 
+  // In latest mode always use the most recent available date, no state sync needed
+  const mapDate = isLiveMode && availableDates.length > 0 ? availableDates[0] : selectedDate;
+
   // Fetch available dates on mount
   useEffect(() => {
     fetchAvailableDates().then(setAvailableDates);
@@ -83,7 +86,7 @@ export default function MapPage() {
         <MapComponent
           onSegmentSelect={setSelectedSegment}
           vehicleWidth={vehicleWidth}
-          selectedDate={selectedDate}
+          selectedDate={mapDate}
           flyToTarget={flyToTarget}
           obstacles={obstacles}
         />
@@ -95,6 +98,7 @@ export default function MapPage() {
         setVehicleWidth={setVehicleWidth}
         selectedDate={selectedDate}
         setSelectedDate={setSelectedDate}
+        mapDate={mapDate}
         isLiveMode={isLiveMode}
         setIsLiveMode={handleLiveModeChange}
         onSearchResultSelect={handleSearchResultSelect}
