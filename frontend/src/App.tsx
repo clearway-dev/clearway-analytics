@@ -5,6 +5,7 @@ import Layout from "./components/Layout";
 import RoadNetworkMap from "./components/RoadNetworkMap";
 import VehiclesPage from "./pages/VehiclesPage";
 import StationsPage from "./pages/StationsPage";
+import ExportPage from "./pages/ExportPage";
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/vehicles" element={<VehiclesPage />} />
           <Route path="/stations" element={<StationsPage />} />
+          <Route path="/export" element={<ExportPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

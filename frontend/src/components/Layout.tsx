@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
-import { Map, LayoutDashboard, Truck, MapPin } from "lucide-react";
+import { Map, LayoutDashboard, Truck, MapPin, Download } from "lucide-react";
 import { cn } from "../lib/utils";
 
 export default function Layout() {
@@ -75,6 +75,21 @@ export default function Layout() {
           >
             <MapPin className="w-5 h-5 mr-3" />
             Stanice
+          </NavLink>
+
+          <NavLink
+            to="/export"
+            className={({ isActive }) =>
+              cn(
+                "flex items-center px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-blue-50 text-blue-600"
+                  : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+              )
+            }
+          >
+            <Download className="w-5 h-5 mr-3" />
+            Export
           </NavLink>
         </nav>
 
