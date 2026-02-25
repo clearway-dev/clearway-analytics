@@ -1,7 +1,7 @@
 import BottomSheet from "../components/BottomSheet";
 import FloatingPanel from "../components/FloatingPanel";
 import MapComponent, { type SegmentData } from "../components/MapComponent";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import type { LatLngTuple } from "leaflet";
 import { useSearchParams } from "react-router-dom";
 import type { ObstacleFeature } from "../components/ObstacleLayer";
@@ -44,6 +44,12 @@ export default function MapPage() {
   const [routingMode, setRoutingMode] = useState(false);
   const [routeStart, setRouteStart] = useState<LatLngTuple | null>(null);
   const [routeEnd, setRouteEnd] = useState<LatLngTuple | null>(null);
+  // Refs so the recalculation effect always reads the latest values without
+  // including them as deps (which would cause double-fetch on point change)
+  const routeStartRef = useRef(routeStart);
+  const routeEndRef = useRef(routeEnd);
+  useEffect(() => { routeStartRef.current = routeStart; }, [routeStart]);
+  useEffect(() => { routeEndRef.current = routeEnd; }, [routeEnd]);
   const [routeGeoJson, setRouteGeoJson] = useState<GeoJsonObject | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState<string | null>(null);
@@ -82,7 +88,7 @@ export default function MapPage() {
     // If both are already set, ignore further clicks until user clears
   }
 
-  async function fetchRoute(start: LatLngTuple, end: LatLngTuple) {
+  const fetchRoute = useCallback(async (start: LatLngTuple, end: LatLngTuple) => {
     setRouteLoading(true);
     setRouteError(null);
     try {
@@ -110,10 +116,11 @@ export default function MapPage() {
     } finally {
       setRouteLoading(false);
     }
-  }
+  }, [vehicleWidth, mapDate]);
 
   function handleSelectStationAsStart(lat: number, lon: number) {
     if (!routingMode) setRoutingMode(true);
+    setSelectedSegment(null);
     setRouteStart([lat, lon]);
     setRouteEnd(null);
     setRouteGeoJson(null);
@@ -121,16 +128,18 @@ export default function MapPage() {
     setRouteError(null);
   }
 
-  // Recalculate existing route when vehicle width changes (debounced)
+  // Recalculate existing route when vehicle width or date changes (debounced).
+  // fetchRoute is a useCallback that updates when vehicleWidth/mapDate change,
+  // so this effect runs exactly when those values change.
+  // Refs give us the latest start/end without making them deps (which would
+  // double-fetch every time the user places a new point).
   useEffect(() => {
-    if (!routeStart || !routeEnd) return;
-    const timer = setTimeout(() => {
-      fetchRoute(routeStart, routeEnd);
-    }, 500);
+    const start = routeStartRef.current;
+    const end = routeEndRef.current;
+    if (!start || !end) return;
+    const timer = setTimeout(() => fetchRoute(start, end), 500);
     return () => clearTimeout(timer);
-  // fetchRoute is stable — only trigger on vehicleWidth change
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vehicleWidth]);
+  }, [fetchRoute]);
 
   function clearRoute() {
     setRoutingMode(false);
@@ -154,7 +163,7 @@ export default function MapPage() {
       {/* Map layer */}
       <div className="absolute inset-0 z-0">
         <MapComponent
-          onSegmentSelect={setSelectedSegment}
+          onSegmentSelect={(data) => { if (!routingMode) setSelectedSegment(data); }}
           vehicleWidth={vehicleWidth}
           selectedDate={mapDate}
           flyToTarget={flyToTarget}
@@ -185,6 +194,7 @@ export default function MapPage() {
             clearRoute();
           } else {
             setRoutingMode(true);
+            setSelectedSegment(null);
             setRouteStart(null);
             setRouteEnd(null);
             setRouteGeoJson(null);

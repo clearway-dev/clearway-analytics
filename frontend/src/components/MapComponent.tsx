@@ -142,7 +142,7 @@ export default function MapComponent({
     setDataVersion((v) => v + 1);
   }, []);
 
-  const geoJsonKey = `${dataVersion}-${vehicleWidth}`;
+  const geoJsonKey = `${dataVersion}-${vehicleWidth}-${routingMode}`;
 
   const styleFeature = (feature?: SegmentFeature) => {
     const avgWidth = feature?.properties?.avg_width;

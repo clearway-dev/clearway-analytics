@@ -1,5 +1,16 @@
 FROM python:3.10-slim
 
+# Install system dependencies for GDAL/Fiona and GeoPandas
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    g++ \
+    libgdal-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Fiona needs to know where GDAL is
+ENV CPLUS_INCLUDE_PATH=/usr/include/gdal
+ENV C_INCLUDE_PATH=/usr/include/gdal
+
 WORKDIR /app
 
 COPY requirements.txt .
