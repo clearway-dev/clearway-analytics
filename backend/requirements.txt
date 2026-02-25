@@ -11,3 +11,4 @@ networkx>=3.0
 scikit-learn
 numpy
 fastmcp
+fiona>=1.9.0
