@@ -18,13 +18,13 @@ router = APIRouter()
 class VehicleBody(BaseModel):
     name: str
     category: Optional[str] = None
-    width: Optional[float] = None
-    height: Optional[float] = None
-    weight: Optional[float] = None
-    length: Optional[float] = None
-    turning_diameter_track: Optional[float] = None
-    turning_diameter_clearance: Optional[float] = None
-    stabilization_width: Optional[float] = None
+    width: Optional[int] = None                     # cm
+    height: Optional[int] = None                    # cm
+    weight: Optional[float] = None                  # tonnes
+    length: Optional[int] = None                    # cm
+    turning_diameter_track: Optional[int] = None    # cm
+    turning_diameter_clearance: Optional[int] = None  # cm
+    stabilization_width: Optional[int] = None       # cm
 
     @model_validator(mode="after")
     def check_positive(self) -> "VehicleBody":

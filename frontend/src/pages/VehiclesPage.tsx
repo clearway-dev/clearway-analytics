@@ -67,28 +67,40 @@ const EMPTY_FORM: FormState = {
   stabilization_width: "",
 };
 
+/** DB stores cm (integer) → form shows metres (e.g. 250 → "2.5"). */
+function cmToMetresStr(cm: number | null): string {
+  return cm != null ? String(cm / 100) : "";
+}
+
 function toFormState(v: TargetVehicle): FormState {
   return {
     name: v.name,
     category: v.category ?? "",
-    width: v.width != null ? String(v.width) : "",
-    height: v.height != null ? String(v.height) : "",
+    width: cmToMetresStr(v.width),
+    height: cmToMetresStr(v.height),
     weight: v.weight != null ? String(v.weight) : "",
-    length: v.length != null ? String(v.length) : "",
-    turning_diameter_track:
-      v.turning_diameter_track != null ? String(v.turning_diameter_track) : "",
-    turning_diameter_clearance:
-      v.turning_diameter_clearance != null
-        ? String(v.turning_diameter_clearance)
-        : "",
-    stabilization_width:
-      v.stabilization_width != null ? String(v.stabilization_width) : "",
+    length: cmToMetresStr(v.length),
+    turning_diameter_track: cmToMetresStr(v.turning_diameter_track),
+    turning_diameter_clearance: cmToMetresStr(v.turning_diameter_clearance),
+    stabilization_width: cmToMetresStr(v.stabilization_width),
   };
 }
 
 function parseOptionalFloat(s: string): number | null {
   const v = parseFloat(s);
   return s.trim() === "" || isNaN(v) ? null : v;
+}
+
+/** Parse user-entered metres (e.g. "2.5") → integer centimetres (250). */
+function parseMetresToCm(s: string): number | null {
+  const v = parseFloat(s);
+  if (s.trim() === "" || isNaN(v)) return null;
+  return Math.round(v * 100);
+}
+
+/** Display integer centimetres as metres with 2 decimal places. */
+function fmtCmAsM(value: number | null): string {
+  return value != null ? `${(value / 100).toFixed(2)} m` : "—";
 }
 
 function fmt(value: number | null, unit: string): string {
@@ -163,15 +175,13 @@ export default function VehiclesPage() {
     const body = {
       name: form.name.trim(),
       category: form.category || null,
-      width: parseOptionalFloat(form.width),
-      height: parseOptionalFloat(form.height),
+      width: parseMetresToCm(form.width),
+      height: parseMetresToCm(form.height),
       weight: parseOptionalFloat(form.weight),
-      length: parseOptionalFloat(form.length),
-      turning_diameter_track: parseOptionalFloat(form.turning_diameter_track),
-      turning_diameter_clearance: parseOptionalFloat(
-        form.turning_diameter_clearance,
-      ),
-      stabilization_width: parseOptionalFloat(form.stabilization_width),
+      length: parseMetresToCm(form.length),
+      turning_diameter_track: parseMetresToCm(form.turning_diameter_track),
+      turning_diameter_clearance: parseMetresToCm(form.turning_diameter_clearance),
+      stabilization_width: parseMetresToCm(form.stabilization_width),
     };
 
     setSaving(true);
@@ -295,15 +305,13 @@ export default function VehiclesPage() {
                   <TableRow key={v.id}>
                     <TableCell className="font-medium">{v.name}</TableCell>
                     <TableCell>{categoryLabel(v.category)}</TableCell>
-                    <TableCell>{fmt(v.width, "m")}</TableCell>
-                    <TableCell>{fmt(v.length, "m")}</TableCell>
-                    <TableCell>{fmt(v.height, "m")}</TableCell>
+                    <TableCell>{fmtCmAsM(v.width)}</TableCell>
+                    <TableCell>{fmtCmAsM(v.length)}</TableCell>
+                    <TableCell>{fmtCmAsM(v.height)}</TableCell>
                     <TableCell>{fmt(v.weight, "t")}</TableCell>
-                    <TableCell>{fmt(v.turning_diameter_track, "m")}</TableCell>
-                    <TableCell>
-                      {fmt(v.turning_diameter_clearance, "m")}
-                    </TableCell>
-                    <TableCell>{fmt(v.stabilization_width, "m")}</TableCell>
+                    <TableCell>{fmtCmAsM(v.turning_diameter_track)}</TableCell>
+                    <TableCell>{fmtCmAsM(v.turning_diameter_clearance)}</TableCell>
+                    <TableCell>{fmtCmAsM(v.stabilization_width)}</TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <button
