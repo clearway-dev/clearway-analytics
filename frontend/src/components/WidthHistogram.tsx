@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
+import apiClient from "../lib/api";
 
 interface HistrogramBin {
   range: string;
@@ -16,14 +17,9 @@ export default function WidthHistogram({ segmentId }: WidthHistogramProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
-    fetch(`${apiUrl}/api/stats/segment/${segmentId}/histogram`)
-      .then((res) => res.json())
-      .then((fetchedData) => {
-        const activeBins = fetchedData.filter(
-          (d: HistrogramBin) => d.count > 0
-        );
+    apiClient.get(`/api/stats/segment/${segmentId}/histogram`)
+      .then((res) => {
+        const activeBins = res.data.filter((d: HistrogramBin) => d.count > 0);
         setData(activeBins);
         setLoading(false);
       })

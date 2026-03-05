@@ -2,8 +2,7 @@ import { useState, useCallback, useRef } from "react";
 import { MapContainer, TileLayer, GeoJSON, useMapEvents } from "react-leaflet";
 import type { LatLngTuple, Layer } from "leaflet";
 import type { GeoJsonObject, Feature, Geometry } from "geojson";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import apiClient from "../lib/api";
 
 interface RoadProperties {
   name: string | null;
@@ -49,12 +48,11 @@ export default function RoadNetworkMap() {
     setLoading(true);
     try {
       const { min_lat, min_lon, max_lat, max_lon } = bbox;
-      const res = await fetch(
-        `${API_URL}/api/maps/bbox?min_lat=${min_lat}&min_lon=${min_lon}&max_lat=${max_lat}&max_lon=${max_lon}`
+      const res = await apiClient.get(
+        `/api/maps/bbox?min_lat=${min_lat}&min_lon=${min_lon}&max_lat=${max_lat}&max_lon=${max_lon}`
       );
-      const data = await res.json();
       dataKey.current += 1;
-      setRoads(data);
+      setRoads(res.data);
     } catch (err) {
       console.error("Error fetching roads:", err);
     } finally {

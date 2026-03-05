@@ -11,6 +11,7 @@ import {
 import type { Feature, GeoJsonObject, Geometry } from "geojson";
 import type { Layer } from "leaflet";
 import ObstacleLayer, { type ObstacleFeature } from "./ObstacleLayer";
+import apiClient from "../lib/api";
 
 export interface SegmentData {
   segment_id: string;
@@ -43,8 +44,6 @@ interface MapComponentProps {
 }
 
 type SegmentFeature = Feature<Geometry, SegmentProperties>;
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 // -----------------------------------------------------------------------
 // Fly-to controller
@@ -81,9 +80,8 @@ function BboxLoader({
       target_date: selectedDate,
     });
     try {
-      const res = await fetch(`${API_URL}/api/maps/bbox?${params}`);
-      const data = await res.json();
-      onData(data);
+      const res = await apiClient.get(`/api/maps/bbox?${params}`);
+      onData(res.data);
     } catch (err) {
       console.error("Error fetching road segments:", err);
     }

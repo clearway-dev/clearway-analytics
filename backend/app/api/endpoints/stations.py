@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_active_user, require_admin
 from app.database import get_db
 from app.models import Station
 
@@ -39,13 +40,13 @@ def _to_dict(s: Station) -> dict:
     }
 
 
-@router.get("/", response_model=list)
+@router.get("/", response_model=list, dependencies=[Depends(get_current_active_user)])
 def list_stations(db: Session = Depends(get_db)):
     stations = db.query(Station).order_by(Station.name).all()
     return [_to_dict(s) for s in stations]
 
 
-@router.post("/", response_model=dict, status_code=201)
+@router.post("/", response_model=dict, status_code=201, dependencies=[Depends(require_admin)])
 def create_station(body: StationBody, db: Session = Depends(get_db)):
     station = Station(**body.model_dump())
     db.add(station)
@@ -54,7 +55,7 @@ def create_station(body: StationBody, db: Session = Depends(get_db)):
     return _to_dict(station)
 
 
-@router.put("/{station_id}", response_model=dict)
+@router.put("/{station_id}", response_model=dict, dependencies=[Depends(require_admin)])
 def update_station(station_id: UUID, body: StationBody, db: Session = Depends(get_db)):
     station = db.query(Station).filter(Station.id == station_id).first()
     if not station:
@@ -66,7 +67,7 @@ def update_station(station_id: UUID, body: StationBody, db: Session = Depends(ge
     return _to_dict(station)
 
 
-@router.delete("/{station_id}", status_code=204)
+@router.delete("/{station_id}", status_code=204, dependencies=[Depends(require_admin)])
 def delete_station(station_id: UUID, db: Session = Depends(get_db)):
     station = db.query(Station).filter(Station.id == station_id).first()
     if not station:

@@ -7,8 +7,7 @@ import { useSearchParams } from "react-router-dom";
 import type { ObstacleFeature } from "../components/ObstacleLayer";
 import { fetchAvailableDates } from "../services/api";
 import type { GeoJsonObject } from "geojson";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import apiClient from "../lib/api";
 
 export default function MapPage() {
   const [searchParams] = useSearchParams();
@@ -64,9 +63,9 @@ export default function MapPage() {
 
   useEffect(() => {
     if (!isLiveMode && selectedDate) {
-      fetch(`${API_URL}/api/analytics/obstacles?target_date=${selectedDate}`)
-        .then((res) => res.json())
-        .then((data) => setObstacles(data?.features ?? []))
+      apiClient
+        .get(`/api/analytics/obstacles?target_date=${selectedDate}`)
+        .then((res) => setObstacles(res.data?.features ?? []))
         .catch(() => setObstacles([]));
     }
   }, [selectedDate, isLiveMode]);
@@ -92,19 +91,15 @@ export default function MapPage() {
     setRouteLoading(true);
     setRouteError(null);
     try {
-      const res = await fetch(`${API_URL}/api/routing/route`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          start_lat: start[0],
-          start_lon: start[1],
-          end_lat: end[0],
-          end_lon: end[1],
-          vehicle_width_cm: vehicleWidth,
-          target_date: mapDate,
-        }),
+      const res = await apiClient.post("/api/routing/route", {
+        start_lat: start[0],
+        start_lon: start[1],
+        end_lat: end[0],
+        end_lon: end[1],
+        vehicle_width_cm: vehicleWidth,
+        target_date: mapDate,
       });
-      const data = await res.json();
+      const data = res.data;
       if (data.status === "ok") {
         setRouteGeoJson(data.route);
         setRouteDistance(data.total_distance_m);

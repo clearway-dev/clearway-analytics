@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, GeoJSON } from "react-leaflet";
 import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import type { LatLngTuple } from "leaflet";
 import "leaflet/dist/leaflet.css";
+import apiClient from "../lib/api";
 
 interface CoverageProperties {
   id: string;
@@ -16,16 +17,9 @@ export default function CoverageMap() {
   const position: LatLngTuple = [49.7384, 13.3736];
 
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
-    fetch(`${apiUrl}/api/dashboard/coverage`)
-      .then((res) => res.json())
-      .then((data) => {
-        setGeoJsonData(data);
-      })
-      .catch((err) => {
-        console.error("Error fetching coverage map data:", err);
-      });
+    apiClient.get("/api/dashboard/coverage")
+      .then((res) => setGeoJsonData(res.data))
+      .catch((err) => console.error("Error fetching coverage map data:", err));
   }, []);
 
   const styleFeature = (feature?: CoverageFeature) => {

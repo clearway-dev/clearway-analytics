@@ -1,3 +1,5 @@
+import apiClient from "../lib/api";
+
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export type ExportMode = "single" | "range" | "all";
@@ -20,39 +22,48 @@ export async function fetchExportPreview(
   if (targetDate) params.set("target_date", targetDate);
   if (fromDate) params.set("from_date", fromDate);
   if (toDate) params.set("to_date", toDate);
-  const response = await fetch(`${API_URL}/api/export/preview?${params}`);
-  if (!response.ok) throw new Error("Failed to fetch export preview");
-  return response.json();
+  const res = await apiClient.get<ExportPreview>(`/api/export/preview?${params}`);
+  return res.data;
 }
 
-export function downloadSegmentExport(
+export async function downloadSegmentExport(
   format: ExportFormat,
   mode: ExportMode,
   targetDate?: string,
   fromDate?: string,
   toDate?: string
-): void {
+): Promise<void> {
   const params = new URLSearchParams({ format, mode });
   if (targetDate) params.set("target_date", targetDate);
   if (fromDate) params.set("from_date", fromDate);
   if (toDate) params.set("to_date", toDate);
+
+  const res = await apiClient.get(`/api/export/segments?${params}`, {
+    responseType: "blob",
+  });
+
+  const ext = format === "shapefile" ? "zip" : format;
+  const filename = res.headers["content-disposition"]
+    ?.match(/filename="?([^"]+)"?/)?.[1] ?? `clearway_export.${ext}`;
+
+  const url = URL.createObjectURL(new Blob([res.data]));
   const a = document.createElement("a");
-  a.href = `${API_URL}/api/export/segments?${params}`;
+  a.href = url;
+  a.download = filename;
   document.body.appendChild(a);
   a.click();
   a.remove();
+  URL.revokeObjectURL(url);
 }
 
 export async function fetchAvailableDates(): Promise<string[]> {
   try {
-    const response = await fetch(`${API_URL}/api/dashboard/available-dates`);
-    if (!response.ok) {
-      throw new Error(`Error fetching dates: ${response.statusText}`);
-    }
-    const data = await response.json();
-    return data.dates;
-  } catch (error) {
-    console.error("Failed to fetch available dates:", error);
+    const res = await apiClient.get<{ dates: string[] }>("/api/dashboard/available-dates");
+    return res.data.dates;
+  } catch {
     return [];
   }
 }
+
+// Re-export base URL for components that still build URLs manually (e.g. fetch in MapPage)
+export { API_URL };

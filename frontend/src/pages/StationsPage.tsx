@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Pencil, Trash2, Plus, X } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import {
   Table, TableHeader, TableBody, TableRow,
   TableHead, TableCell,
 } from "../components/ui/table";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import apiClient from "../lib/api";
 
 const STATION_TYPES: { value: string; label: string }[] = [
   { value: "fire_station", label: "Hasičská stanice" },
@@ -61,6 +61,7 @@ function toFormState(s: StationRecord): FormState {
 }
 
 export default function StationsPage() {
+  const { isAdmin } = useAuth();
   const [stations, setStations] = useState<StationRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
@@ -75,9 +76,8 @@ export default function StationsPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    fetch(`${API_URL}/api/stations/`)
-      .then((r) => r.json())
-      .then((data) => { setStations(data); setLoading(false); })
+    apiClient.get("/api/stations/")
+      .then((r) => { setStations(r.data); setLoading(false); })
       .catch(() => { setPageError("Nepodařilo se načíst data."); setLoading(false); });
   }, []);
 
@@ -122,28 +122,19 @@ export default function StationsPage() {
     setSaving(true);
     setFormError(null);
     try {
-      const url = editingId
-        ? `${API_URL}/api/stations/${editingId}`
-        : `${API_URL}/api/stations/`;
-      const res = await fetch(url, {
-        method: editingId ? "PUT" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        setFormError(err?.detail ?? "Uložení selhalo.");
-        return;
-      }
-      const saved: StationRecord = await res.json();
+      const url = editingId ? `/api/stations/${editingId}` : "/api/stations/";
+      const method = editingId ? "put" : "post";
+      const res = await apiClient[method]<StationRecord>(url, body);
+      const saved = res.data;
       setStations((prev) =>
         editingId
           ? prev.map((s) => (s.id === editingId ? saved : s))
           : [...prev, saved].sort((a, b) => a.name.localeCompare(b.name))
       );
       setModalOpen(false);
-    } catch {
-      setFormError("Síťová chyba.");
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setFormError(detail ?? "Uložení selhalo.");
     } finally {
       setSaving(false);
     }
@@ -153,7 +144,7 @@ export default function StationsPage() {
     if (!deleteId) return;
     setDeleting(true);
     try {
-      await fetch(`${API_URL}/api/stations/${deleteId}`, { method: "DELETE" });
+      await apiClient.delete(`/api/stations/${deleteId}`);
       setStations((prev) => prev.filter((s) => s.id !== deleteId));
     } finally {
       setDeleteId(null);
@@ -174,13 +165,15 @@ export default function StationsPage() {
         <h2 className="text-2xl font-bold tracking-tight text-gray-900">
           Výjezdové stanice
         </h2>
-        <button
-          onClick={openCreate}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Přidat stanici
-        </button>
+        {isAdmin && (
+          <button
+            onClick={openCreate}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Přidat stanici
+          </button>
+        )}
       </div>
 
       <div className="flex-1 p-6 pt-2 overflow-auto">
@@ -220,22 +213,24 @@ export default function StationsPage() {
                     <TableCell className="font-mono text-sm">{s.lon.toFixed(5)}</TableCell>
                     <TableCell className="max-w-[150px] truncate text-gray-500">{s.notes ?? "—"}</TableCell>
                     <TableCell>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => openEdit(s)}
-                          className="p-1.5 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-800"
-                          title="Upravit"
-                        >
-                          <Pencil className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteId(s.id)}
-                          className="p-1.5 hover:bg-red-50 rounded text-gray-500 hover:text-red-600"
-                          title="Smazat"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {isAdmin && (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => openEdit(s)}
+                            className="p-1.5 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-800"
+                            title="Upravit"
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setDeleteId(s.id)}
+                            className="p-1.5 hover:bg-red-50 rounded text-gray-500 hover:text-red-600"
+                            title="Smazat"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

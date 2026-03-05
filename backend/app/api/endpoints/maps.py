@@ -6,12 +6,13 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_active_user
 from app.database import get_db
 
 router = APIRouter()
 
 
-@router.get("/bbox", response_model=dict)
+@router.get("/bbox", response_model=dict, dependencies=[Depends(get_current_active_user)])
 async def get_segments_in_bbox(
     min_lat: float = Query(...),
     min_lon: float = Query(...),

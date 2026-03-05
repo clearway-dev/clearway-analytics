@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import apiClient from "../lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
 import { Activity, Map, Ruler, BarChart3, ArrowRight } from "lucide-react";
@@ -59,18 +60,9 @@ export default function AdminPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8000";
-
-    fetch(`${apiUrl}/api/dashboard/stats`)
-      .then((res) => res.json())
-      .then((data) => {
-        setStats(data);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error("Failed to load dashboard stats:", err);
-        setLoading(false);
-      });
+    apiClient.get("/api/dashboard/stats")
+      .then((res) => { setStats(res.data); setLoading(false); })
+      .catch((err) => { console.error("Failed to load dashboard stats:", err); setLoading(false); });
   }, []);
 
   if (loading) {

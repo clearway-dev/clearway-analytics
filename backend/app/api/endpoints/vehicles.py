@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, model_validator
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_active_user, require_admin
 from app.database import get_db
 from app.models import TargetVehicle
 
@@ -55,13 +56,13 @@ def _to_dict(v: TargetVehicle) -> dict:
 # Endpoints
 # --------------------------------------------------------------------------
 
-@router.get("/", response_model=list)
+@router.get("/", response_model=list, dependencies=[Depends(get_current_active_user)])
 def list_vehicles(db: Session = Depends(get_db)):
     vehicles = db.query(TargetVehicle).order_by(TargetVehicle.name).all()
     return [_to_dict(v) for v in vehicles]
 
 
-@router.post("/", response_model=dict, status_code=201)
+@router.post("/", response_model=dict, status_code=201, dependencies=[Depends(require_admin)])
 def create_vehicle(body: VehicleBody, db: Session = Depends(get_db)):
     vehicle = TargetVehicle(**body.model_dump())
     db.add(vehicle)
@@ -70,7 +71,7 @@ def create_vehicle(body: VehicleBody, db: Session = Depends(get_db)):
     return _to_dict(vehicle)
 
 
-@router.put("/{vehicle_id}", response_model=dict)
+@router.put("/{vehicle_id}", response_model=dict, dependencies=[Depends(require_admin)])
 def update_vehicle(vehicle_id: UUID, body: VehicleBody, db: Session = Depends(get_db)):
     vehicle = db.query(TargetVehicle).filter(TargetVehicle.id == vehicle_id).first()
     if not vehicle:
@@ -82,7 +83,7 @@ def update_vehicle(vehicle_id: UUID, body: VehicleBody, db: Session = Depends(ge
     return _to_dict(vehicle)
 
 
-@router.delete("/{vehicle_id}", status_code=204)
+@router.delete("/{vehicle_id}", status_code=204, dependencies=[Depends(require_admin)])
 def delete_vehicle(vehicle_id: UUID, db: Session = Depends(get_db)):
     vehicle = db.query(TargetVehicle).filter(TargetVehicle.id == vehicle_id).first()
     if not vehicle:
