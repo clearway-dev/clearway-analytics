@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { Pencil, Trash2, Plus, X } from "lucide-react";
+import { Pencil, Trash2, Plus, X, Sparkles } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import AIImportModal, { type AIVehicleData } from "../components/vehicles/AIImportModal";
 import {
   Card,
   CardHeader,
@@ -110,6 +111,7 @@ function fmt(value: number | null, unit: string): string {
 export default function VehiclesPage() {
   const { isAdmin } = useAuth();
   const [vehicles, setVehicles] = useState<TargetVehicle[]>([]);
+  const [aiModalOpen, setAiModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
 
@@ -139,6 +141,14 @@ export default function VehiclesPage() {
     setForm(EMPTY_FORM);
     setFormError(null);
     setModalOpen(true);
+  }
+
+  function handleVehiclesAdded(newVehicles: AIVehicleData[]) {
+    setAiModalOpen(false);
+    setVehicles((prev) =>
+      [...prev, ...(newVehicles as unknown as TargetVehicle[])]
+        .sort((a, b) => a.name.localeCompare(b.name))
+    );
   }
 
   function openEdit(v: TargetVehicle) {
@@ -238,13 +248,22 @@ export default function VehiclesPage() {
           Vozidla IZS
         </h2>
         {isAdmin && (
-          <button
-            onClick={openCreate}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Přidat vozidlo
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAiModalOpen(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-blue-300 text-blue-600 text-sm font-medium rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              <Sparkles className="w-4 h-4" />
+              AI Import
+            </button>
+            <button
+              onClick={openCreate}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Přidat vozidlo
+            </button>
+          </div>
         )}
       </div>
 
@@ -467,6 +486,13 @@ export default function VehiclesPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {aiModalOpen && (
+        <AIImportModal
+          onVehiclesAdded={handleVehiclesAdded}
+          onClose={() => setAiModalOpen(false)}
+        />
       )}
     </div>
   );
