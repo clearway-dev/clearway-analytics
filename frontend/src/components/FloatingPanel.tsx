@@ -16,7 +16,7 @@ interface SearchResult {
 interface VehicleOption {
   id: string;
   name: string;
-  width: number | null; // metres
+  width: number | null; // cm
 }
 
 interface StationOption {
@@ -160,8 +160,7 @@ export default function FloatingPanel({
     if (!id) return;
     const vehicle = vehicles.find((v) => v.id === id);
     if (vehicle && vehicle.width != null) {
-      const widthCm = Math.round(vehicle.width * 100);
-      setVehicleWidth(Math.min(500, Math.max(150, widthCm)));
+      setVehicleWidth(Math.min(500, Math.max(150, vehicle.width)));
     }
   }
 
@@ -249,7 +248,7 @@ export default function FloatingPanel({
                 value={v.id}
                 disabled={v.width == null}
               >
-                {v.name}{v.width != null ? ` (${Math.round(v.width * 100)} cm)` : " — no width"}
+                {v.name}{v.width != null ? ` (${v.width} cm)` : " — no width"}
               </option>
             ))}
           </select>

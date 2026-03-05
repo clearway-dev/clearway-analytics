@@ -116,11 +116,11 @@ class TargetVehicle(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(255), nullable=False)
     category = Column(String(100), nullable=True)
-    width = Column(Float, nullable=True)
-    height = Column(Float, nullable=True)
-    weight = Column(Float, nullable=True)
-    length = Column(Float, nullable=True)
-    turning_diameter_track = Column(Float, nullable=True)
-    turning_diameter_clearance = Column(Float, nullable=True)
-    stabilization_width = Column(Float, nullable=True)
+    width = Column(Integer, nullable=True)          # cm
+    height = Column(Integer, nullable=True)         # cm
+    weight = Column(Float, nullable=True)           # tonnes
+    length = Column(Integer, nullable=True)         # cm
+    turning_diameter_track = Column(Integer, nullable=True)      # cm
+    turning_diameter_clearance = Column(Integer, nullable=True)  # cm
+    stabilization_width = Column(Integer, nullable=True)         # cm
     created_at = Column(DateTime(timezone=True), server_default=func.now())

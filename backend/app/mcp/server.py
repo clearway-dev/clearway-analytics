@@ -124,32 +124,32 @@ def get_daily_analytics(target_date: str) -> dict:
 def create_vehicle(
     name: str,
     category: str | None = None,
-    width: float | None = None,
-    height: float | None = None,
+    width: int | None = None,
+    height: int | None = None,
     weight: float | None = None,
-    length: float | None = None,
-    turning_diameter_track: float | None = None,
-    turning_diameter_clearance: float | None = None,
-    stabilization_width: float | None = None,
+    length: int | None = None,
+    turning_diameter_track: int | None = None,
+    turning_diameter_clearance: int | None = None,
+    stabilization_width: int | None = None,
 ) -> dict:
     """
     Inserts a new vehicle into the target_vehicles table.
 
     All numeric fields are in SI units:
       - width, height, length, turning_diameter_track,
-        turning_diameter_clearance, stabilization_width  → metres
+        turning_diameter_clearance, stabilization_width  → centimetres (INTEGER)
       - weight → tonnes
 
     Args:
         name: Vehicle name, e.g. "CAS 24 SCANIA" (required).
         category: Free-text category, e.g. "Cisterna", "Žebřík".
-        width: Vehicle width in metres.
-        height: Vehicle height in metres.
+        width: Vehicle width in centimetres.
+        height: Vehicle height in centimetres.
         weight: Vehicle weight in tonnes.
-        length: Vehicle length in metres.
-        turning_diameter_track: Track turning diameter in metres.
-        turning_diameter_clearance: Clearance turning diameter in metres (nullable).
-        stabilization_width: Width with stabilisers extended in metres (nullable).
+        length: Vehicle length in centimetres.
+        turning_diameter_track: Track turning diameter in centimetres.
+        turning_diameter_clearance: Clearance turning diameter in centimetres (nullable).
+        stabilization_width: Width with stabilisers extended in centimetres (nullable).
 
     Returns:
         The saved vehicle record as a dict, including its generated id.
