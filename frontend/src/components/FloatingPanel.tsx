@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
+import apiClient from "../lib/api";
 import { Calendar } from "./ui/calendar";
 import { format } from "date-fns";
 import { Search, CalendarIcon, ChevronDown, Navigation, X, Loader2 } from "lucide-react";
 import type { LatLngTuple } from "leaflet";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 interface SearchResult {
   id: string;
@@ -90,14 +90,12 @@ export default function FloatingPanel({
 
   // Fetch vehicle list and station list once on mount
   useEffect(() => {
-    fetch(`${API_URL}/api/vehicles/`)
-      .then((r) => r.json())
-      .then((data: VehicleOption[]) => setVehicles(data))
+    apiClient.get<VehicleOption[]>("/api/vehicles/")
+      .then((r) => setVehicles(r.data))
       .catch(() => setVehicles([]));
 
-    fetch(`${API_URL}/api/stations/`)
-      .then((r) => r.json())
-      .then((data: StationOption[]) => setStations(data))
+    apiClient.get<StationOption[]>("/api/stations/")
+      .then((r) => setStations(r.data))
       .catch(() => setStations([]));
   }, []);
 

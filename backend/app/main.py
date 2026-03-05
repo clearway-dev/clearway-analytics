@@ -18,7 +18,8 @@ from shapely.geometry import shape
 from app.services.analytics_service import AnalyticsService
 from app.services.dashboard_service import DashboardService
 from app.services.ml_service import MLService
-from app.api.endpoints import maps, vehicles, routing, stations
+from app.api.deps import get_current_active_user
+from app.api.endpoints import auth, maps, vehicles, routing, stations
 
 # Initialize the FastAPI application with metadata
 app = FastAPI(
@@ -48,6 +49,7 @@ app.add_middleware(
 )
 # --------------------------------------------------------------------------
 
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(maps.router, prefix="/api/maps", tags=["maps"])
 app.include_router(vehicles.router, prefix="/api/vehicles", tags=["vehicles"])
 app.include_router(routing.router, prefix="/api/routing", tags=["routing"])
@@ -87,9 +89,9 @@ async def get_status(db: Session = Depends(get_db)):
             "detail": str(e)
     }
 
-@app.get("/api/map/segments")
+@app.get("/api/map/segments", dependencies=[Depends(get_current_active_user)])
 async def get_road_segments(
-    target_date: date = date.today(), 
+    target_date: date = date.today(),
     db: Session = Depends(get_db)
 ):
     """
@@ -133,7 +135,7 @@ async def get_road_segments(
         "features": features
     }
 
-@app.get("/api/stats/segment/{segment_id}/histogram")
+@app.get("/api/stats/segment/{segment_id}/histogram", dependencies=[Depends(get_current_active_user)])
 async def get_segment_histogram(
     segment_id: str,
     db: Session = Depends(get_db)
@@ -147,7 +149,7 @@ async def get_segment_histogram(
 
     return histogram_data
 
-@app.get("/api/roads/search")
+@app.get("/api/roads/search", dependencies=[Depends(get_current_active_user)])
 async def search_roads(q: str, db: Session = Depends(get_db)):
     """
     Search for road segments by name (fulltext-like).
@@ -180,7 +182,7 @@ async def search_roads(q: str, db: Session = Depends(get_db)):
         for row in results
     ]
 
-@app.get("/api/dashboard/stats")
+@app.get("/api/dashboard/stats", dependencies=[Depends(get_current_active_user)])
 async def get_dashboard_stats(db: Session = Depends(get_db)):
     """
     Returns global KPI statistics for the admin dashboard.
@@ -188,7 +190,7 @@ async def get_dashboard_stats(db: Session = Depends(get_db)):
     service = DashboardService(db)
     return service.get_global_stats()
 
-@app.get("/api/dashboard/coverage")
+@app.get("/api/dashboard/coverage", dependencies=[Depends(get_current_active_user)])
 async def get_coverage_map(db: Session = Depends(get_db)):
     """
     Returns GeoJSON heatmap of measurement coverage.
@@ -196,7 +198,7 @@ async def get_coverage_map(db: Session = Depends(get_db)):
     service = DashboardService(db)
     return service.get_coverage_map_data()
 
-@app.get("/api/dashboard/available-dates")
+@app.get("/api/dashboard/available-dates", dependencies=[Depends(get_current_active_user)])
 async def get_available_dates(db: Session = Depends(get_db)):
     """
     Returns a list of dates for which data is available.
@@ -204,7 +206,7 @@ async def get_available_dates(db: Session = Depends(get_db)):
     service = DashboardService(db)
     return {"dates": service.get_available_dates()}
 
-@app.get("/api/export/preview")
+@app.get("/api/export/preview", dependencies=[Depends(get_current_active_user)])
 async def export_preview(
     mode: str = "single",
     target_date: Optional[date] = None,
@@ -271,7 +273,7 @@ def _build_export_rows(results, mode: str):
     return rows
 
 
-@app.get("/api/export/segments")
+@app.get("/api/export/segments", dependencies=[Depends(get_current_active_user)])
 async def export_segments(
     mode: str = "single",
     target_date: Optional[date] = None,
@@ -413,7 +415,7 @@ async def export_segments(
     )
 
 
-@app.get("/api/analytics/obstacles")
+@app.get("/api/analytics/obstacles", dependencies=[Depends(get_current_active_user)])
 async def get_obstacles(
     target_date: date = date.today(),
     db: Session = Depends(get_db)

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.api.deps import get_current_active_user
 from app.database import get_db
 
 router = APIRouter()
@@ -71,7 +72,7 @@ def _trim_geom(conn, edge_id: int, frac: float, from_frac: float, to_frac: float
     return row[0] if row else None
 
 
-@router.post("/route", response_model=dict)
+@router.post("/route", response_model=dict, dependencies=[Depends(get_current_active_user)])
 def find_route(body: RouteRequest, db: Session = Depends(get_db)):
     """
     Find the shortest passable route between two geographic points.
