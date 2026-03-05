@@ -19,7 +19,7 @@ from app.services.analytics_service import AnalyticsService
 from app.services.dashboard_service import DashboardService
 from app.services.ml_service import MLService
 from app.api.deps import get_current_active_user
-from app.api.endpoints import auth, maps, vehicles, routing, stations
+from app.api.endpoints import auth, maps, vehicles, routing, stations, ai
 
 # Initialize the FastAPI application with metadata
 app = FastAPI(
@@ -54,6 +54,7 @@ app.include_router(maps.router, prefix="/api/maps", tags=["maps"])
 app.include_router(vehicles.router, prefix="/api/vehicles", tags=["vehicles"])
 app.include_router(routing.router, prefix="/api/routing", tags=["routing"])
 app.include_router(stations.router, prefix="/api/stations", tags=["stations"])
+app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 
 @app.get("/")
 async def root():
