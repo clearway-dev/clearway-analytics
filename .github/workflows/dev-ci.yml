@@ -87,21 +87,60 @@ jobs:
             VITE_API_URL=https://api.clearway.zephyron.tech
 
   # ────────────────────────────────────────────────────────────────────────────
-  # 4. Tests — placeholder until pytest suite is ready
+  # 4. Integration tests against the pre-seeded golden database image
   # ────────────────────────────────────────────────────────────────────────────
   backend-tests:
-    name: Backend tests (pytest)
+    name: Backend integration tests (pytest)
     runs-on: ubuntu-latest
     needs: [backend-lint]
+    timeout-minutes: 15
+    permissions:
+      packages: read
 
     steps:
       - uses: actions/checkout@v4
+
+      # Log in so the runner can pull the private golden image from GHCR.
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Pull and start the golden image. Using docker run (not a service container)
+      # so we can build the image name with lowercase conversion inline.
+      - name: Start golden DB
+        run: |
+          IMAGE=ghcr.io/$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')/clearway-db-seeded:latest
+          docker run -d \
+            --name clearway-test-db \
+            -p 5432:5432 \
+            $IMAGE
+
+      - name: Wait for DB to be ready
+        run: |
+          for i in $(seq 1 30); do
+            docker exec clearway-test-db pg_isready -U clearway && break
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.10"
 
-      - name: Tests placeholder
-        # TODO: replace with `pytest backend/tests/ -v` once test suite exists
-        run: echo "No automated tests yet — pytest suite to be added."
+      - name: Install system dependencies for geopandas/osmnx
+        run: sudo apt-get install -y --no-install-recommends libgdal-dev
+
+      - name: Install Python dependencies
+        run: pip install -r backend/requirements.txt pytest pytest-mock httpx
+
+      - name: Run integration tests
+        working-directory: ./backend
+        run: pytest tests/integration -v
+        env:
+          DATABASE_URL: postgresql://clearway:clearway_dev_password@localhost:5432/clearway
+          # SECRET_KEY only needs to be consistent — auth deps are overridden in conftest.
+          SECRET_KEY: ci-test-secret-key
