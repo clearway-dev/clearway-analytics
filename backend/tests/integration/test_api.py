@@ -135,13 +135,9 @@ def obstacle_measurements(db):
 
     yield
 
-    for rec in cleaned_records:
-        db.delete(rec)
-    for raw in raw_records:
-        db.delete(raw)
-    db.delete(session)
-    db.delete(vehicle)
+    # ON DELETE CASCADE propagates: sensor/vehicle → session → raw_measurements → cleaned_measurements
     db.delete(sensor)
+    db.delete(vehicle)
     db.commit()
 
 
