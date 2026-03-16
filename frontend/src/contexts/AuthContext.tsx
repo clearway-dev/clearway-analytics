@@ -45,13 +45,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(
     localStorage.getItem("access_token")
   );
-  const [isLoading, setIsLoading] = useState(true);
+  // Lazy init: start loading only when there's a token to validate
+  const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem("access_token"));
 
   // On mount: validate stored token and restore user state
   useEffect(() => {
     const storedToken = localStorage.getItem("access_token");
     if (!storedToken) {
-      setIsLoading(false);
       return;
     }
     apiClient
@@ -113,6 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 // Hook
 // ---------------------------------------------------------------------------
 
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth(): AuthContextValue {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used inside <AuthProvider>");

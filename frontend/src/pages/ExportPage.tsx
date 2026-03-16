@@ -155,7 +155,9 @@ export default function ExportPage() {
 
   // live preview whenever mode/dates change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreviewLoading(true);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreview(null);
     const td = mode === "single" ? singleDate : undefined;
     const fd = mode === "range" ? fromDate : undefined;
