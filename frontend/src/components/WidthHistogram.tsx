@@ -32,20 +32,20 @@ export default function WidthHistogram({ segmentId }: WidthHistogramProps) {
   if (loading)
     return (
       <div className="h-32 flex items-center justify-center text-gray-400 text-xs">
-        Loading chart...
+        Načítám graf...
       </div>
     );
   if (data.length === 0)
     return (
       <div className="h-32 flex items-center justify-center text-gray-400 text-xs">
-        No detail data available
+        Žádná data k zobrazení
       </div>
     );
 
   return (
     <div className="w-full h-48 mt-2">
       <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">
-        Width Distribution (cm)
+        Distribuce šířky (cm)
       </h4>
       <ResponsiveContainer width="100%" height="100%">
         <BarChart

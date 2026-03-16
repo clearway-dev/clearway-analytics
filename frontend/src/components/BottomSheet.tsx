@@ -7,9 +7,9 @@ interface BottomSheetProps {
 }
 
 const STATUS_CONFIG = {
-  ok: { bg: "bg-green-100", text: "text-green-700", label: "Passable" },
-  narrow: { bg: "bg-red-100", text: "text-red-700", label: "Critical" },
-  no_data: { bg: "bg-gray-100", text: "text-gray-500", label: "No data" },
+  ok: { bg: "bg-green-100", text: "text-green-700", label: "Průjezdné" },
+  narrow: { bg: "bg-red-100", text: "text-red-700", label: "Kritické" },
+  no_data: { bg: "bg-gray-100", text: "text-gray-500", label: "Bez dat" },
 };
 
 export default function BottomSheet({ data, onClose }: BottomSheetProps) {
@@ -30,7 +30,7 @@ export default function BottomSheet({ data, onClose }: BottomSheetProps) {
           <div className="flex justify-between items-start mb-4">
             <div>
               <h2 className="text-xl font-bold text-gray-800">
-                {data.name || "Unknown Road"}
+                {data.name || "Neznámá ulice"}
               </h2>
             </div>
             {(() => {
@@ -48,7 +48,7 @@ export default function BottomSheet({ data, onClose }: BottomSheetProps) {
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
               <span className="block text-xs text-gray-500 uppercase font-semibold mb-1">
-                Avg Width
+                Průměrná šířka
               </span>
               {data.avg_width != null ? (
                 <span className="text-3xl font-black text-gray-800">
@@ -61,7 +61,7 @@ export default function BottomSheet({ data, onClose }: BottomSheetProps) {
             </div>
             <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
               <span className="block text-xs text-gray-500 uppercase font-semibold mb-1">
-                Measurements
+                Měření
               </span>
               <span className="text-lg font-bold text-gray-700">
                 {data.measurements_count ?? "—"}

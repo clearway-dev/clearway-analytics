@@ -194,12 +194,12 @@ export default function FloatingPanel({
       {/* 1. Search */}
       <div className="mb-4 relative">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-          Search Location
+          Vyhledávání
         </label>
         <div className="relative">
           <input
             type="text"
-            placeholder="Search street..."
+            placeholder="Hledat ulici..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-3 pr-9 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
@@ -229,7 +229,7 @@ export default function FloatingPanel({
       {/* 2. Vehicle Width */}
       <div className="mb-5">
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-          Vehicle Width
+          Šířka vozidla
         </label>
 
         {/* Vehicle selector */}
@@ -239,14 +239,14 @@ export default function FloatingPanel({
             onChange={handleVehicleSelect}
             className="w-full appearance-none border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 truncate"
           >
-            <option value="">— Set width manually —</option>
+            <option value="">— Zadat ručně —</option>
             {vehicles.map((v) => (
               <option
                 key={v.id}
                 value={v.id}
                 disabled={v.width == null}
               >
-                {v.name}{v.width != null ? ` (${v.width} cm)` : " — no width"}
+                {v.name}{v.width != null ? ` (${v.width} cm)` : " — bez šířky"}
               </option>
             ))}
           </select>
@@ -290,7 +290,7 @@ export default function FloatingPanel({
       {/* 3. Data Source */}
       <div>
         <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-          Data Source
+          Zdroj dat
         </label>
         <div className="flex bg-gray-100 p-1 rounded-lg mb-3">
           <button
@@ -301,7 +301,7 @@ export default function FloatingPanel({
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            Latest
+            Aktuální
           </button>
           <button
             onClick={handleHistoryClick}
@@ -311,7 +311,7 @@ export default function FloatingPanel({
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            History
+            Historie
           </button>
         </div>
 
@@ -353,7 +353,7 @@ export default function FloatingPanel({
 
         {isLiveMode && (
           <p className="text-xs text-gray-400 text-center">
-            Showing data from {formatDisplayDate(mapDate)}
+            Data z {formatDisplayDate(mapDate)}
           </p>
         )}
       </div>
@@ -362,7 +362,7 @@ export default function FloatingPanel({
       <div className="mt-4 pt-4 border-t border-gray-100">
         <div className="flex items-center justify-between mb-2">
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Route Finder
+            Trasování
           </label>
           {routingMode && (
             <button
@@ -370,7 +370,7 @@ export default function FloatingPanel({
               className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
             >
               <X className="w-3 h-3" />
-              Clear
+              Smazat
             </button>
           )}
         </div>
@@ -384,7 +384,7 @@ export default function FloatingPanel({
           }`}
         >
           <Navigation className="w-4 h-4" />
-          {routingMode ? "Routing active" : "Find Route"}
+          {routingMode ? "Trasování aktivní" : "Hledat trasu"}
         </button>
 
         {/* Station as route start */}
@@ -416,24 +416,24 @@ export default function FloatingPanel({
             {routeLoading && (
               <div className="flex items-center gap-1.5 text-blue-600">
                 <Loader2 className="w-3 h-3 animate-spin" />
-                Calculating route…
+                Výpočet trasy…
               </div>
             )}
             {!routeLoading && !routeStart && (
               <p className="flex items-center gap-1.5">
                 <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                Click start point on map
+                Klikněte na startovní bod na mapě
               </p>
             )}
             {!routeLoading && routeStart && !routeEnd && (
               <p className="flex items-center gap-1.5">
                 <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
-                Click end point on map
+                Klikněte na cílový bod na mapě
               </p>
             )}
             {!routeLoading && routeDistance != null && (
               <p className="font-medium text-gray-700">
-                Route: {routeDistance >= 1000
+                Trasa: {routeDistance >= 1000
                   ? `${(routeDistance / 1000).toFixed(2)} km`
                   : `${routeDistance} m`}
               </p>

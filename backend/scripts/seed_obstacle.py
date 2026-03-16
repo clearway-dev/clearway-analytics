@@ -23,7 +23,6 @@ def generate_random_point_in_radius(center_lat, center_lon, radius_meters):
     angle = random.uniform(0, 2 * 3.14159)
     distance = random.uniform(0, radius_meters)
     
-    lat_offset_meters = distance * 3.14159 # Using simplified component logic or just direct conversion
     # Better:
     # d_lat = distance * cos(angle) / 111111
     # d_lon = distance * sin(angle) / (111111 * cos(center_lat))

@@ -68,7 +68,7 @@ export default function AdminPage() {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-screen bg-gray-50">
-        <span className="text-gray-500">Loading dashboard data...</span>
+        <span className="text-gray-500">Načítám data přehledu...</span>
       </div>
     );
   }
@@ -76,8 +76,8 @@ export default function AdminPage() {
   if (!stats) {
     return (
       <div className="p-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-6">Admin Dashboard</h1>
-        <div className="text-red-500">Failed to load data.</div>
+        <h1 className="text-3xl font-bold tracking-tight mb-6">Přehled</h1>
+        <div className="text-red-500">Nepodařilo se načíst data.</div>
       </div>
     );
   }
@@ -86,7 +86,7 @@ export default function AdminPage() {
     <div className="h-full w-full overflow-hidden bg-gray-50/50 flex flex-col">
       {/* HEADER */}
       <div className="flex-none p-6 pb-2">
-        <h2 className="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h2>
+        <h2 className="text-2xl font-bold tracking-tight text-gray-900">Přehled</h2>
       </div>
 
       {/* MAIN CONTENT - SCROLLABLE IF NEEDED BUT COMPACT */}
@@ -105,7 +105,7 @@ export default function AdminPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                     <CardTitle className="text-xs font-medium text-gray-500">
-                      Network Length
+                      Délka sítě
                     </CardTitle>
                     <Ruler className="h-4 w-4 text-gray-400" />
                   </CardHeader>
@@ -118,7 +118,7 @@ export default function AdminPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                     <CardTitle className="text-xs font-medium text-gray-500">
-                      Measurements
+                      Měření
                     </CardTitle>
                     <Activity className="h-4 w-4 text-gray-400" />
                   </CardHeader>
@@ -131,7 +131,7 @@ export default function AdminPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                     <CardTitle className="text-xs font-medium text-gray-500">
-                      Segments
+                      Úseky
                     </CardTitle>
                     <BarChart3 className="h-4 w-4 text-gray-400" />
                   </CardHeader>
@@ -144,7 +144,7 @@ export default function AdminPage() {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
                     <CardTitle className="text-xs font-medium text-gray-500">
-                      Total Roads
+                      Celkem úseků
                     </CardTitle>
                     <Map className="h-4 w-4 text-gray-400" />
                   </CardHeader>
@@ -159,7 +159,7 @@ export default function AdminPage() {
                 {/* Activity Chart */}
                 <Card className="flex flex-col h-full">
                   <CardHeader className="p-4 pb-2 flex-none">
-                    <CardTitle className="text-sm">Measurement Activity (7d)</CardTitle>
+                    <CardTitle className="text-sm">Aktivita měření (7 dní)</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 flex-1 min-h-[150px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -196,7 +196,7 @@ export default function AdminPage() {
                 {/* Pie Chart */}
                 <Card className="flex flex-col h-full">
                   <CardHeader className="p-4 pb-2 flex-none">
-                    <CardTitle className="text-sm">Infrastructure Health</CardTitle>
+                    <CardTitle className="text-sm">Stav infrastruktury</CardTitle>
                   </CardHeader>
                   <CardContent className="p-4 pt-0 flex-1 min-h-[150px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -239,7 +239,7 @@ export default function AdminPage() {
             <div className="lg:col-span-4 h-full">
               <Card className="h-full flex flex-col overflow-hidden">
                 <CardHeader className="p-4 pb-2 flex-none">
-                  <CardTitle className="text-sm">Coverage Heatmap</CardTitle>
+                  <CardTitle className="text-sm">Pokrytí měřením</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 relative">
                    <div className="absolute inset-0">
@@ -254,16 +254,16 @@ export default function AdminPage() {
           <div className="flex-none pb-4">
             <Card>
               <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-sm">Data Anomalies (Narrowest Segments)</CardTitle>
+                <CardTitle className="text-sm">Datové anomálie (nejužší úseky)</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[40%]">Street Name</TableHead>
-                      <TableHead>Min Width</TableHead>
-                      <TableHead>Avg Width</TableHead>
-                      <TableHead className="text-right">Measurements</TableHead>
+                      <TableHead className="w-[40%]">Název ulice</TableHead>
+                      <TableHead>Min. šířka</TableHead>
+                      <TableHead>Prům. šířka</TableHead>
+                      <TableHead className="text-right">Měření</TableHead>
                       <TableHead className="w-[50px]"></TableHead>
                     </TableRow>
                   </TableHeader>

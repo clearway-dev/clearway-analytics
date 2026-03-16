@@ -35,13 +35,13 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 fastmcp run app/mcp/server.py:mcp --transport sse --port 8001
 
 # Data scripts (run from backend/)
-python seed_roads.py              # Seed OSM road segments
-python seed_stations.py           # Seed emergency stations
-python setup_routing.py           # Build pgRouting topology on road network
+python scripts/seed_stations.py   # Seed emergency stations
 python calculate_stats.py         # Recalculate daily segment statistics
 python scripts/seed_obstacle.py   # Generate test obstacle data
 python scripts/test_mcp_client.py # Test MCP tools
 ```
+
+OSM road seeding and pgRouting topology setup have moved to `clearway-infra` (`make seed-roads`, `make setup-routing`).
 
 No backend test framework is configured — testing is done via the scripts above.
 
@@ -81,7 +81,6 @@ RawMeasurement → CleanedMeasurement → SegmentStatistics → API → Frontend
 - **`services/analytics_service.py`** — Spatial join: measurements → road segments, daily stats
 - **`services/dashboard_service.py`** — KPI aggregations for admin dashboard
 - **`services/ml_service.py`** — DBSCAN obstacle detection (5m radius, min 5 samples)
-- **`services/osm_service.py`** — OpenStreetMap / Nominatim integration
 - **`mcp/server.py`** — FastMCP server; exposes 5 tools:
   - `list_tables` — list all DB tables
   - `run_read_only_sql` — execute SELECT queries (restricted to SELECT only)
