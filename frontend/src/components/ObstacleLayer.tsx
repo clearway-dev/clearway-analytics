@@ -35,15 +35,15 @@ export default function ObstacleLayer({ obstacles }: ObstacleLayerProps) {
             <Popup>
               <div className="p-1">
                 <h3 className="font-bold text-red-600 mb-1">
-                  ⚠️ Critical Obstacle detected
+                  ⚠️ Detekována kritická překážka
                 </h3>
                 <p className="text-sm text-gray-700 m-0">
-                  <span className="font-semibold">Severity:</span>{" "}
+                  <span className="font-semibold">Závažnost:</span>{" "}
                   {obstacle.properties.severity}
                 </p>
                 <p className="text-sm text-gray-700 m-0">
-                  <span className="font-semibold">Cluster size:</span>{" "}
-                  {obstacle.properties.cluster_size} points
+                  <span className="font-semibold">Velikost shluku:</span>{" "}
+                  {obstacle.properties.cluster_size} bodů
                 </p>
               </div>
             </Popup>

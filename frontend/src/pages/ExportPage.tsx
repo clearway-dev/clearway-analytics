@@ -21,18 +21,18 @@ function today(): string {
 const MODES: { id: ExportMode; label: string; description: string }[] = [
   {
     id: "single",
-    label: "Single date",
-    description: "Stats for one specific measurement day",
+    label: "Jeden den",
+    description: "Statistiky pro jeden konkrétní den měření",
   },
   {
     id: "range",
-    label: "Date range",
-    description: "Aggregated across a from → to period",
+    label: "Rozsah dat",
+    description: "Agregováno za zvolené časové období",
   },
   {
     id: "all",
-    label: "All time",
-    description: "All measurements ever recorded",
+    label: "Vše",
+    description: "Všechna zaznamenaná měření v databázi",
   },
 ];
 
@@ -47,21 +47,21 @@ const FORMATS: {
     id: "geojson",
     label: "GeoJSON",
     ext: ".geojson",
-    description: "Full geometry · opens in QGIS / ArcGIS",
+    description: "Plná geometrie · otevře v QGIS / ArcGIS",
     Icon: FileJson,
   },
   {
     id: "shapefile",
     label: "Shapefile",
     ext: ".zip",
-    description: "Standard GIS format · ZIP archive",
+    description: "Standardní GIS formát · ZIP archiv",
     Icon: Map,
   },
   {
     id: "csv",
     label: "CSV",
     ext: ".csv",
-    description: "Flat table · no geometry · for spreadsheets",
+    description: "Tabulka bez geometrie · pro tabulkové procesory",
     Icon: FileSpreadsheet,
   },
 ];
@@ -182,16 +182,16 @@ export default function ExportPage() {
 
         {/* Header */}
         <div>
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Export Data</h2>
+          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Export dat</h2>
           <p className="text-sm text-gray-500 mt-1">
-            Download road passability data in standard GIS formats.
+            Stáhněte data průjezdnosti ve standardních GIS formátech.
           </p>
         </div>
 
         {/* ── 1. Time range mode ── */}
         <section className="space-y-3">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Time Range
+            Časový rozsah
           </h3>
 
           <div className="flex bg-white border border-gray-200 rounded-xl p-1 gap-1">
@@ -217,7 +217,7 @@ export default function ExportPage() {
           {/* Date controls */}
           {mode === "single" && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 w-12">Date</span>
+              <span className="text-sm text-gray-600 w-12">Datum</span>
               <DatePicker
                 value={singleDate}
                 onChange={setSingleDate}
@@ -229,7 +229,7 @@ export default function ExportPage() {
           {mode === "range" && (
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 w-8">From</span>
+                <span className="text-sm text-gray-600 w-8">Od</span>
                 <DatePicker
                   value={fromDate}
                   onChange={setFromDate}
@@ -237,7 +237,7 @@ export default function ExportPage() {
                 />
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 w-8">To</span>
+                <span className="text-sm text-gray-600 w-8">Do</span>
                 <DatePicker
                   value={toDate}
                   onChange={setToDate}
@@ -250,7 +250,7 @@ export default function ExportPage() {
 
           {mode === "all" && (
             <p className="text-sm text-gray-500">
-              Includes all measurement data in the database, aggregated per segment.
+              Zahrnuje veškerá měření v databázi, agregovaná podle úseku.
             </p>
           )}
         </section>
@@ -258,7 +258,7 @@ export default function ExportPage() {
         {/* ── 2. Format ── */}
         <section className="space-y-3">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Format
+            Formát
           </h3>
 
           <div className="grid grid-cols-3 gap-3">
@@ -294,20 +294,20 @@ export default function ExportPage() {
         {/* ── 3. Preview + download ── */}
         <section className="space-y-3">
           <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Preview
+            Náhled
           </h3>
 
           <Card>
             <CardContent className="p-4">
               {previewLoading && (
-                <p className="text-sm text-gray-400">Calculating…</p>
+                <p className="text-sm text-gray-400">Načítám…</p>
               )}
               {!previewLoading && preview === null && (
-                <p className="text-sm text-red-400">Could not load preview.</p>
+                <p className="text-sm text-red-400">Náhled nelze načíst.</p>
               )}
               {!previewLoading && preview !== null && preview.segment_count === 0 && (
                 <p className="text-sm text-amber-600">
-                  No data found for the selected time range.
+                  Pro vybraný časový rozsah nebyla nalezena žádná data.
                 </p>
               )}
               {!previewLoading && preview !== null && preview.segment_count > 0 && (
@@ -315,17 +315,17 @@ export default function ExportPage() {
                   <div className="space-y-1">
                     <p className="text-2xl font-bold text-gray-900">
                       {preview.segment_count.toLocaleString()}{" "}
-                      <span className="text-base font-normal text-gray-500">segments</span>
+                      <span className="text-base font-normal text-gray-500">úseků</span>
                     </p>
                     {mode === "single" && (
                       <p className="text-sm text-gray-500">
-                        Data from {preview.date_from}
+                        Data z {preview.date_from}
                       </p>
                     )}
                     {mode !== "single" && preview.date_from && (
                       <p className="text-sm text-gray-500">
                         {preview.date_from} → {preview.date_to} &middot;{" "}
-                        {preview.days_with_data} day{preview.days_with_data !== 1 ? "s" : ""} with data
+                        {preview.days_with_data} dní s daty
                       </p>
                     )}
                   </div>
@@ -346,7 +346,7 @@ export default function ExportPage() {
             className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
           >
             <Download className="h-4 w-4" />
-            Download {FORMATS.find((f) => f.id === exportFormat)?.ext}
+            Stáhnout {FORMATS.find((f) => f.id === exportFormat)?.ext}
           </button>
         </section>
 

@@ -37,12 +37,12 @@ export default function Layout() {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <NavLink to="/" className={NAV_LINK_CLASS}>
             <Map className="w-5 h-5 mr-3" />
-            Map View
+            Mapa
           </NavLink>
 
           <NavLink to="/admin" className={NAV_LINK_CLASS}>
             <LayoutDashboard className="w-5 h-5 mr-3" />
-            Dashboard
+            Přehled
           </NavLink>
 
           <NavLink to="/vehicles" className={NAV_LINK_CLASS}>
@@ -57,7 +57,7 @@ export default function Layout() {
 
           <NavLink to="/export" className={NAV_LINK_CLASS}>
             <Download className="w-5 h-5 mr-3" />
-            Export
+            Exporty
           </NavLink>
 
           {isAdmin && (
