@@ -7,7 +7,7 @@ from datetime import date, datetime
 import pytest
 from geoalchemy2 import WKTElement
 
-from app.models import CleanedMeasurement
+from app.models import CleanedMeasurement, Sensor, Vehicle, Session, RawMeasurement
 
 
 # ---------------------------------------------------------------------------
@@ -84,27 +84,64 @@ _CLUSTER_SIZE = 10
 @pytest.fixture
 def obstacle_measurements(db):
     """
-    Insert CLUSTER_SIZE narrow CleanedMeasurement rows on _TEST_DATE,
-    then remove them after the test completes.
+    Insert the full prerequisite chain (Sensor → Vehicle → Session → RawMeasurement)
+    and then CLUSTER_SIZE narrow CleanedMeasurement rows on _TEST_DATE.
+    Cleans up everything in reverse order after the test completes.
     """
-    records = []
+    sensor = Sensor(description="CI test sensor")
+    db.add(sensor)
+
+    vehicle = Vehicle(vehicle_name="CI test vehicle", width=200.0)
+    db.add(vehicle)
+
+    db.flush()  # populate sensor.id and vehicle.id
+
+    session = Session(sensor_id=sensor.id, vehicle_id=vehicle.id)
+    db.add(session)
+    db.flush()  # populate session.id
+
+    raw_records = []
     for i in range(_CLUSTER_SIZE):
+        lat = _BASE_LAT + i * 0.000001
+        lon = _BASE_LON + i * 0.000001
+        raw = RawMeasurement(
+            session_id=session.id,
+            measured_at=_TEST_DATETIME,
+            latitude=lat,
+            longitude=lon,
+            distance_left=100.0,
+            distance_right=100.0,
+        )
+        db.add(raw)
+        raw_records.append(raw)
+
+    db.flush()  # populate raw.id for each RawMeasurement
+
+    cleaned_records = []
+    for i, raw in enumerate(raw_records):
         lat = _BASE_LAT + i * 0.000001   # ~0.11 m spacing — all within 5 m epsilon
         lon = _BASE_LON + i * 0.000001
         rec = CleanedMeasurement(
+            raw_measurement_id=raw.id,
             cleaned_width=250.0,           # below 300 cm threshold → detected as obstacle
             quality_score=0.9,
             geom=WKTElement(f"POINT({lon} {lat})", srid=4326),
             created_at=_TEST_DATETIME,
         )
         db.add(rec)
-        records.append(rec)
+        cleaned_records.append(rec)
+
     db.commit()
 
     yield
 
-    for rec in records:
+    for rec in cleaned_records:
         db.delete(rec)
+    for raw in raw_records:
+        db.delete(raw)
+    db.delete(session)
+    db.delete(vehicle)
+    db.delete(sensor)
     db.commit()
 
 
