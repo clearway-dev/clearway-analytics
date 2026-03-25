@@ -102,7 +102,7 @@ function BboxLoader({
       try {
         const res = await apiClient.get(`/api/maps/bbox?${params}`);
         onData(res.data);
-      } catch (err) {
+      } catch {
       }
     }, DEBOUNCE_MS);
   }, [map, selectedDate, onData]);

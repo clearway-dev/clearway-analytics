@@ -53,7 +53,7 @@ export default function RoadNetworkMap() {
       );
       dataKey.current += 1;
       setRoads(res.data);
-    } catch (err) {
+    } catch {
     } finally {
       setLoading(false);
     }
