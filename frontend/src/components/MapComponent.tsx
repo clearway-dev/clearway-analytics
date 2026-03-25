@@ -103,6 +103,7 @@ function BboxLoader({
         const res = await apiClient.get(`/api/maps/bbox?${params}`);
         onData(res.data);
       } catch {
+        // network errors are non-fatal; the map simply keeps the previous data
       }
     }, DEBOUNCE_MS);
   }, [map, selectedDate, onData]);
