@@ -1,5 +1,5 @@
 import type { LatLngTuple } from "leaflet";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CircleMarker,
   GeoJSON,
@@ -59,8 +59,12 @@ function MapController({ target }: { target: LatLngTuple | null }) {
 }
 
 // -----------------------------------------------------------------------
-// Bbox loader — fetches segments for current viewport on mount + moveend
+// Bbox loader — fetches segments for current viewport on mount + moveend + zoomend.
+// Skips the API call when zoomed out below MIN_ZOOM and clears stale data instead.
 // -----------------------------------------------------------------------
+const MIN_ZOOM = 14;
+const DEBOUNCE_MS = 300;
+
 function BboxLoader({
   selectedDate,
   onData,
@@ -69,29 +73,41 @@ function BboxLoader({
   onData: (data: GeoJsonObject) => void;
 }) {
   const map = useMap();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchBbox = useCallback(async () => {
-    const b = map.getBounds();
-    const params = new URLSearchParams({
-      min_lat: b.getSouth().toString(),
-      min_lon: b.getWest().toString(),
-      max_lat: b.getNorth().toString(),
-      max_lon: b.getEast().toString(),
-      target_date: selectedDate,
-    });
-    try {
-      const res = await apiClient.get(`/api/maps/bbox?${params}`);
-      onData(res.data);
-    } catch (err) {
-      console.error("Error fetching road segments:", err);
-    }
+  const scheduleFetch = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    timerRef.current = setTimeout(async () => {
+      // Below MIN_ZOOM the bbox is too large — clear segments and bail out
+      if (map.getZoom() < MIN_ZOOM) {
+        onData({ type: "FeatureCollection", features: [] } as GeoJsonObject);
+        return;
+      }
+
+      const b = map.getBounds();
+      const params = new URLSearchParams({
+        min_lat: b.getSouth().toString(),
+        min_lon: b.getWest().toString(),
+        max_lat: b.getNorth().toString(),
+        max_lon: b.getEast().toString(),
+        target_date: selectedDate,
+      });
+      try {
+        const res = await apiClient.get(`/api/maps/bbox?${params}`);
+        onData(res.data);
+      } catch (err) {
+        console.error("Error fetching road segments:", err);
+      }
+    }, DEBOUNCE_MS);
   }, [map, selectedDate, onData]);
 
   useEffect(() => {
-    fetchBbox();
-  }, [fetchBbox]);
+    scheduleFetch();
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [scheduleFetch]);
 
-  useMapEvents({ moveend: fetchBbox });
+  useMapEvents({ moveend: scheduleFetch, zoomend: scheduleFetch });
 
   return null;
 }
