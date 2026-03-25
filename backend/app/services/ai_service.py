@@ -1,7 +1,7 @@
 import json
 import re
 
-import google.generativeai as genai
+from google import genai
 
 from app.core.config import GOOGLE_API_KEY
 
@@ -39,11 +39,10 @@ Example output:
 """
 
 
-def _init_model() -> genai.GenerativeModel:
+def _init_model() -> genai.Client:
     if not GOOGLE_API_KEY:
         raise ValueError("GOOGLE_API_KEY is not set in environment variables.")
-    genai.configure(api_key=GOOGLE_API_KEY)
-    return genai.GenerativeModel("gemini-3.1-flash-lite-preview")
+    return genai.Client(api_key=GOOGLE_API_KEY)
 
 
 def _normalise_vehicle(data: dict) -> dict:
@@ -66,9 +65,9 @@ def parse_vehicles_from_text(text: str) -> list[dict]:
     All dimensional values are in centimetres (int), weight in tonnes (float).
     Missing fields are None.
     """
-    model = _init_model()
+    client = _init_model()
     prompt = f"{_SYSTEM_PROMPT}\n\nText to parse:\n{text}"
-    response = model.generate_content(prompt)
+    response = client.models.generate_content(model="gemini-3.1-flash-lite-preview", contents=prompt)
 
     raw = response.text.strip()
     # Strip markdown code fences if model wraps output despite instructions
