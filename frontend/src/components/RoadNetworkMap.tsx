@@ -54,7 +54,6 @@ export default function RoadNetworkMap() {
       dataKey.current += 1;
       setRoads(res.data);
     } catch (err) {
-      console.error("Error fetching roads:", err);
     } finally {
       setLoading(false);
     }

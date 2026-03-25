@@ -14,10 +14,10 @@ router = APIRouter()
 
 @router.get("/bbox", response_model=dict, dependencies=[Depends(get_current_active_user)])
 async def get_segments_in_bbox(
-    min_lat: float = Query(...),
-    min_lon: float = Query(...),
-    max_lat: float = Query(...),
-    max_lon: float = Query(...),
+    min_lat: float = Query(..., ge=-90, le=90),
+    min_lon: float = Query(..., ge=-180, le=180),
+    max_lat: float = Query(..., ge=-90, le=90),
+    max_lon: float = Query(..., ge=-180, le=180),
     target_date: Optional[date] = Query(None),
     db: Session = Depends(get_db),
 ):
@@ -54,19 +54,24 @@ async def get_segments_in_bbox(
 
     rows = db.execute(query, params).fetchall()
 
-    features = [
-        {
-            "type": "Feature",
-            "id": str(row.id),
-            "properties": {
-                "name": row.name,
-                "avg_width": row.avg_width,
-                "min_width": row.min_width,
-                "measurements_count": row.measurements_count,
-            },
-            "geometry": json.loads(row.geometry),
-        }
-        for row in rows
-    ]
+    features = []
+    for row in rows:
+        try:
+            geometry = json.loads(row.geometry)
+        except (TypeError, ValueError):
+            continue  # skip rows with malformed geometry rather than crashing
+        features.append(
+            {
+                "type": "Feature",
+                "id": str(row.id),
+                "properties": {
+                    "name": row.name,
+                    "avg_width": row.avg_width,
+                    "min_width": row.min_width,
+                    "measurements_count": row.measurements_count,
+                },
+                "geometry": geometry,
+            }
+        )
 
     return {"type": "FeatureCollection", "features": features}

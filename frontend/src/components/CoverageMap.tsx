@@ -19,7 +19,7 @@ export default function CoverageMap() {
   useEffect(() => {
     apiClient.get("/api/dashboard/coverage")
       .then((res) => setGeoJsonData(res.data))
-      .catch((err) => console.error("Error fetching coverage map data:", err));
+      .catch(() => {});
   }, []);
 
   const styleFeature = (feature?: CoverageFeature) => {

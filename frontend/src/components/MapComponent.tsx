@@ -103,7 +103,6 @@ function BboxLoader({
         const res = await apiClient.get(`/api/maps/bbox?${params}`);
         onData(res.data);
       } catch (err) {
-        console.error("Error fetching road segments:", err);
       }
     }, DEBOUNCE_MS);
   }, [map, selectedDate, onData]);
