@@ -69,9 +69,11 @@ export default function BottomSheet({ data, onClose }: BottomSheetProps) {
             </div>
           </div>
 
-          <div className="border-t border-gray-100 pt-4">
-            <WidthHistogram segmentId={data.segment_id} />
-          </div>
+          {data.status !== "no_data" && (
+            <div className="border-t border-gray-100 pt-4">
+              <WidthHistogram segmentId={data.segment_id} />
+            </div>
+          )}
         </div>
       )}
     </div>
