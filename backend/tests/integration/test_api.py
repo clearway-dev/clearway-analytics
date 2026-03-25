@@ -123,7 +123,7 @@ def obstacle_measurements(db):
         lon = _BASE_LON + i * 0.000001
         rec = CleanedMeasurement(
             raw_measurement_id=raw.id,
-            cleaned_width=250.0,           # below 300 cm threshold → detected as obstacle
+            cleaned_width=150.0,           # below 200 cm threshold → severity=critical
             quality_score=0.9,
             geom=WKTElement(f"POINT({lon} {lat})", srid=4326),
             created_at=_TEST_DATETIME,
