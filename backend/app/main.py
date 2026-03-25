@@ -84,12 +84,9 @@ async def get_status(db: Session = Depends(get_db)):
             "test_query_result": result # Should be 1 
         }
     except Exception as e:
-        # Log the exception 
-        print(f"Database connection error: {e}")
-        return {
-            "database": "error", 
-            "detail": str(e)
-    }
+        import logging
+        logging.getLogger(__name__).error("Database connection error: %s", e)
+        return {"database": "error", "detail": "Database unavailable"}
 
 @app.get("/api/map/segments", dependencies=[Depends(get_current_active_user)])
 async def get_road_segments(

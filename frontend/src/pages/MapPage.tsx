@@ -8,7 +8,7 @@ const DEFAULT_CENTER: LatLngTuple = [49.7384, 13.3736];
 const DEFAULT_ZOOM = 14;
 import { useSearchParams } from "react-router-dom";
 import type { ObstacleFeature } from "../components/ObstacleLayer";
-import { fetchAvailableDates } from "../services/api";
+import { fetchAvailableDates, fetchObstacles } from "../services/api";
 import type { GeoJsonObject } from "geojson";
 import apiClient from "../lib/api";
 
@@ -29,7 +29,11 @@ export default function MapPage() {
   const [isLiveMode, setIsLiveMode] = useState<boolean>(() => !urlDate);
 
   const [flyToTarget, setFlyToTarget] = useState<FlyToTarget | null>(() => {
-    if (urlLat && urlLon) return { center: [parseFloat(urlLat), parseFloat(urlLon)], zoom: 16 };
+    if (urlLat && urlLon) {
+      const lat = parseFloat(urlLat);
+      const lon = parseFloat(urlLon);
+      if (!isNaN(lat) && !isNaN(lon)) return { center: [lat, lon], zoom: 16 };
+    }
     return null;
   });
 
@@ -66,10 +70,7 @@ export default function MapPage() {
 
   useEffect(() => {
     if (!isLiveMode && selectedDate) {
-      apiClient
-        .get(`/api/analytics/obstacles?target_date=${selectedDate}`)
-        .then((res) => setObstacles(res.data?.features ?? []))
-        .catch(() => setObstacles([]));
+      fetchObstacles(selectedDate).then(setObstacles);
     }
   }, [selectedDate, isLiveMode]);
 

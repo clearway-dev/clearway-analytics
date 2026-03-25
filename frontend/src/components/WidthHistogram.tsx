@@ -23,8 +23,7 @@ export default function WidthHistogram({ segmentId }: WidthHistogramProps) {
         setData(activeBins);
         setLoading(false);
       })
-      .catch((err) => {
-        console.error("Error fetching histogram data:", err);
+      .catch(() => {
         setLoading(false);
       });
   }, [segmentId]);

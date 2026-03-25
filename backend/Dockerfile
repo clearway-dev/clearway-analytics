@@ -1,22 +1,25 @@
-FROM python:3.10-slim
+FROM python:3.12-alpine3.23
 
-# Install system dependencies for GDAL/Fiona and GeoPandas
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    gcc \
-    g++ \
-    libgdal-dev \
-    && rm -rf /var/lib/apt/lists/*
+# GDAL + build tools needed for fiona/geopandas (shapefile export)
+RUN apk add --no-cache \
+    gcc g++ musl-dev \
+    gdal-dev
 
-# Fiona needs to know where GDAL is
+# Tell fiona/geopandas where GDAL headers are (Alpine paths)
 ENV CPLUS_INCLUDE_PATH=/usr/include/gdal
 ENV C_INCLUDE_PATH=/usr/include/gdal
 
 WORKDIR /app
 
+# Install Python deps first — this layer is cached until requirements.txt changes
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy only application code (see .dockerignore for exclusions)
 COPY . .
 
-# Produkční nastavení (bez reload)
+# Run as non-root user for security
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+USER appuser
+
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,27 @@
+# Dependencies — installed fresh inside the container
+node_modules/
+
+# Version control
+.git
+.gitignore
+
+# Documentation
+README.md
+*.md
+
+# Environment files
+.env
+.env.*
+.env.local
+
+# Dev tooling / editor
+.vscode/
+.idea/
+
+# Build output (rebuilt inside the container)
+dist/
+
+# Docker files themselves
+Dockerfile
+Dockerfile.prod
+.dockerignore

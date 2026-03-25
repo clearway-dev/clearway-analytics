@@ -9,7 +9,7 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import type { Feature, GeoJsonObject, Geometry } from "geojson";
-import type { Layer } from "leaflet";
+import type { Layer, Polyline } from "leaflet";
 import ObstacleLayer, { type ObstacleFeature } from "./ObstacleLayer";
 import apiClient from "../lib/api";
 
@@ -102,8 +102,8 @@ function BboxLoader({
       try {
         const res = await apiClient.get(`/api/maps/bbox?${params}`);
         onData(res.data);
-      } catch (err) {
-        console.error("Error fetching road segments:", err);
+      } catch {
+        // network errors are non-fatal; the map simply keeps the previous data
       }
     }, DEBOUNCE_MS);
   }, [map, selectedDate, onData]);
@@ -185,11 +185,9 @@ export default function MapComponent({
         const avg = p.avg_width;
         const status =
           avg == null ? "no_data" : avg >= vehicleWidth ? "ok" : "narrow";
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const leafletCenter = (layer as any).getBounds?.().getCenter();
-        const center: LatLngTuple = leafletCenter
-          ? [leafletCenter.lat, leafletCenter.lng]
-          : [0, 0];
+        const bounds = (layer as Polyline).getBounds();
+        const leafletCenter = bounds.getCenter();
+        const center: LatLngTuple = [leafletCenter.lat, leafletCenter.lng];
         onSegmentSelect({
           segment_id: feature.id as string,
           name: p.name ?? "Unknown Road",

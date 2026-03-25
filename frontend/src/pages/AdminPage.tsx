@@ -62,7 +62,7 @@ export default function AdminPage() {
   useEffect(() => {
     apiClient.get("/api/dashboard/stats")
       .then((res) => { setStats(res.data); setLoading(false); })
-      .catch((err) => { console.error("Failed to load dashboard stats:", err); setLoading(false); });
+      .catch(() => { setLoading(false); });
   }, []);
 
   if (loading) {

@@ -2,7 +2,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user, require_admin
@@ -22,9 +22,12 @@ class StationBody(BaseModel):
     lon: float
     notes: Optional[str] = None
 
-    def model_post_init(self, __context) -> None:
-        if self.type and self.type not in VALID_TYPES:
+    @field_validator("type")
+    @classmethod
+    def validate_type(cls, v: Optional[str]) -> Optional[str]:
+        if v is not None and v not in VALID_TYPES:
             raise ValueError(f"type must be one of: {', '.join(sorted(VALID_TYPES))}")
+        return v
 
 
 def _to_dict(s: Station) -> dict:

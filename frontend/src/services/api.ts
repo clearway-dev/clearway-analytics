@@ -59,6 +59,15 @@ export async function downloadSegmentExport(
   URL.revokeObjectURL(url);
 }
 
+export async function fetchObstacles(targetDate: string): Promise<import("../components/ObstacleLayer").ObstacleFeature[]> {
+  try {
+    const res = await apiClient.get(`/api/analytics/obstacles?target_date=${targetDate}`);
+    return res.data?.features ?? [];
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchAvailableDates(): Promise<string[]> {
   try {
     const res = await apiClient.get<{ dates: string[] }>("/api/dashboard/available-dates");

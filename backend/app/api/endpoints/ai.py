@@ -1,4 +1,5 @@
 import io
+import logging
 from typing import List
 
 import pdfplumber
@@ -7,6 +8,8 @@ from pydantic import BaseModel
 
 from app.api.deps import require_admin
 from app.services.ai_service import parse_vehicles_from_text
+
+log = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -34,9 +37,11 @@ def _run_ai(text: str) -> List[ParsedVehicle]:
         vehicles = parse_vehicles_from_text(text)
         return [ParsedVehicle(**v) for v in vehicles]
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(e))
+        log.error("AI service error: %s", e)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="AI service unavailable.")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=f"AI parsing failed: {e}")
+        log.error("Unexpected AI parsing error: %s", e)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="AI parsing failed.")
 
 
 @router.post("/parse-vehicle", response_model=List[ParsedVehicle], dependencies=[Depends(require_admin)])
