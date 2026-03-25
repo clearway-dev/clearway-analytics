@@ -81,8 +81,6 @@ def find_route(body: RouteRequest, db: Session = Depends(get_db)):
     The route geometry is trimmed at start/end so the line begins and ends
     exactly at the clicked positions, not at road intersections.
     """
-    target_date_str = str(body.target_date) if body.target_date else None
-
     start_edge_id, start_frac = _find_edge_snap(db, body.start_lon, body.start_lat)
     end_edge_id, end_frac = _find_edge_snap(db, body.end_lon, body.end_lat)
 
@@ -92,12 +90,18 @@ def find_route(body: RouteRequest, db: Session = Depends(get_db)):
     if start_edge_id == end_edge_id and abs(start_frac - end_frac) < 0.001:
         return {"status": "no_route", "message": "Start and end point are at the same location."}
 
-    if target_date_str:
-        date_join = f"AND ss.stat_date = '{target_date_str}'"
-    else:
-        date_join = "AND ss.stat_date = (SELECT MAX(stat_date) FROM segment_statistics)"
-
+    # vehicle_width_cm is validated as float by Pydantic — safe to embed in the
+    # pgRouting sub-query string (pgr_withPoints executes it internally so
+    # SQLAlchemy bind-params cannot be used inside that string).
     width = float(body.vehicle_width_cm)
+
+    # Build the date filter for the pgRouting sub-query the same way:
+    # body.target_date is validated as `date` by Pydantic, so .isoformat()
+    # always produces a safe "YYYY-MM-DD" string.
+    if body.target_date:
+        inner_date_join = f"AND ss.stat_date = '{body.target_date.isoformat()}'"
+    else:
+        inner_date_join = "AND ss.stat_date = (SELECT MAX(stat_date) FROM segment_statistics)"
 
     inner_sql = f"""
         SELECT
@@ -120,7 +124,7 @@ def find_route(body: RouteRequest, db: Session = Depends(get_db)):
             END AS reverse_cost
         FROM road_segments rs
         LEFT JOIN segment_statistics ss
-            ON ss.segment_id = rs.id {date_join}
+            ON ss.segment_id = rs.id {inner_date_join}
         WHERE rs.source IS NOT NULL AND rs.target IS NOT NULL
     """
 
@@ -131,6 +135,19 @@ def find_route(body: RouteRequest, db: Session = Depends(get_db)):
         f"SELECT 2::integer AS pid, {end_edge_id}::bigint AS edge_id, "
         f"{end_frac:.8f}::float8 AS fraction, 'b'::char AS side"
     )
+
+    # The outer query uses a proper SQLAlchemy bind-parameter for the date
+    # filter so no user input is interpolated into the SQL text directly.
+    if body.target_date:
+        outer_date_condition = "AND ss.stat_date = :target_date"
+        route_params: dict = {
+            "inner_sql": inner_sql,
+            "points_sql": points_sql,
+            "target_date": body.target_date,
+        }
+    else:
+        outer_date_condition = "AND ss.stat_date = (SELECT MAX(stat_date) FROM segment_statistics)"
+        route_params = {"inner_sql": inner_sql, "points_sql": points_sql}
 
     try:
         rows = db.execute(
@@ -149,11 +166,11 @@ def find_route(body: RouteRequest, db: Session = Depends(get_db)):
                                     directed => false) r
                 JOIN road_segments rs ON rs.seq_id = r.edge
                 LEFT JOIN segment_statistics ss
-                    ON ss.segment_id = rs.id {date_join}
+                    ON ss.segment_id = rs.id {outer_date_condition}
                 WHERE r.edge > 0
                 ORDER BY r.seq
             """),
-            {"inner_sql": inner_sql, "points_sql": points_sql},
+            route_params,
         ).fetchall()
     except Exception as e:
         error_msg = str(e)
@@ -162,7 +179,7 @@ def find_route(body: RouteRequest, db: Session = Depends(get_db)):
                 status_code=500,
                 detail="Road network topology not initialised. Run scripts/setup_routing.py first.",
             )
-        raise HTTPException(status_code=500, detail=f"Routing error: {error_msg}")
+        raise HTTPException(status_code=500, detail="Routing query failed.")
 
     if not rows:
         return {"status": "no_route", "message": "No passable route found between these points."}

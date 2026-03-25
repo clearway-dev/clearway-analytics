@@ -1,83 +1,89 @@
+import logging
 from sqlalchemy.orm import Session
 from datetime import date
-import geopandas as gpd
 from sqlalchemy import text, select, cast, func
 from app.models import SegmentStatistics, RoadSegment, CleanedMeasurement
 from geoalchemy2 import Geography
+
+log = logging.getLogger(__name__)
+
+# Maximum distance (metres) for assigning a measurement to a road segment.
+SNAP_DISTANCE_M = 10
 
 
 class AnalyticsService:
     def __init__(self, db: Session):
         self.db = db
 
-    def calculate_daily_stats(self, target_date: date):
-        print(f"Calculating statistics for date: {target_date}")
+    def calculate_daily_stats(self, target_date: date) -> None:
+        """Compute per-segment width statistics for *target_date*.
 
-        print("Loading road segments from database...")
-        sql_roads = "SELECT id, osm_id, geom FROM road_segments"
-        gdf_roads = gpd.read_postgis(sql_roads, self.db.connection(), geom_col="geom")
-        gdf_roads.set_crs(epsg=4326, allow_override=True, inplace=True)
+        Each measurement is assigned to the single nearest road segment within
+        SNAP_DISTANCE_M using a PostGIS LATERAL join (mirrors the previous
+        GeoPandas sjoin_nearest logic but runs entirely inside the database).
+        Existing stats for the date are deleted before inserting new ones so
+        the method is safe to re-run.
+        """
+        log.info("Calculating statistics for date: %s", target_date)
 
-        print("Loading measurements from database...")
-        sql_measurements = text(f"""
-            SELECT id, cleaned_width, geom
-            FROM cleaned_measurements
-            WHERE DATE(created_at) = '{target_date}'
-        """)
-        gdf_measurements = gpd.read_postgis(
-            sql_measurements, self.db.connection(), geom_col="geom"
+        # Remove stale stats for this date so re-runs produce correct results.
+        self.db.execute(
+            text("DELETE FROM segment_statistics WHERE stat_date = :d"),
+            {"d": target_date},
         )
-        gdf_measurements.set_crs(epsg=4326, allow_override=True, inplace=True)
 
-        if gdf_measurements.empty:
-            print("No measurements found for the given date.")
+        # Assign each measurement to its nearest segment within SNAP_DISTANCE_M,
+        # then aggregate — entirely in PostGIS, no data loaded into Python memory.
+        result = self.db.execute(
+            text("""
+                WITH nearest AS (
+                    SELECT DISTINCT ON (cm.id)
+                        rs.id          AS segment_id,
+                        cm.cleaned_width
+                    FROM cleaned_measurements cm
+                    CROSS JOIN LATERAL (
+                        SELECT rs.id
+                        FROM road_segments rs
+                        WHERE ST_DWithin(cm.geom::geography, rs.geom::geography, :snap_m)
+                        ORDER BY cm.geom <-> rs.geom
+                        LIMIT 1
+                    ) rs
+                    WHERE DATE(cm.created_at) = :target_date
+                )
+                SELECT
+                    segment_id,
+                    AVG(cleaned_width)  AS avg_width,
+                    MIN(cleaned_width)  AS min_width,
+                    MAX(cleaned_width)  AS max_width,
+                    COUNT(*)            AS measurements_count
+                FROM nearest
+                GROUP BY segment_id
+            """),
+            {"target_date": target_date, "snap_m": SNAP_DISTANCE_M},
+        )
+
+        rows = result.fetchall()
+
+        if not rows:
+            log.info("No measurements found for %s — nothing stored.", target_date)
             return
 
-        print(
-            f"Found {len(gdf_measurements)} measurements and {len(gdf_roads)} road segments. Performing spatial join with road segments..."
-        )
+        log.info("Storing statistics for %d road segments.", len(rows))
 
-        gdf_measurements = gdf_measurements.to_crs(epsg=3857)
-        gdf_roads = gdf_roads.to_crs(epsg=3857)
-
-        print("Performing spatial join...")
-
-        matched = gpd.sjoin_nearest(
-            gdf_measurements,
-            gdf_roads,
-            how="inner",
-            distance_col="dist",
-            max_distance=10,
-        )
-
-        print(f"Spatial join completed. Found {len(matched)} matched measurements.")
-
-        stats = (
-            matched.groupby("id_right")["cleaned_width"]
-            .agg(
-                avg_width="mean",
-                min_width="min",
-                max_width="max",
-                measurements_count="count",
+        for row in rows:
+            self.db.add(
+                SegmentStatistics(
+                    segment_id=row.segment_id,
+                    stat_date=target_date,
+                    avg_width=round(float(row.avg_width), 2),
+                    min_width=round(float(row.min_width), 2),
+                    max_width=round(float(row.max_width), 2),
+                    measurements_count=int(row.measurements_count),
+                )
             )
-            .reset_index()
-        )
-
-        print(f"Storing statistics for {len(stats)} road segments in the database...")
-
-        for _, row in stats.iterrows():
-            stat_record = SegmentStatistics(
-                segment_id=row["id_right"],
-                stat_date=target_date,
-                avg_width=round(row["avg_width"], 2),
-                min_width=round(row["min_width"], 2),
-                max_width=round(row["max_width"], 2),
-                measurements_count=int(row["measurements_count"]),
-            )
-            self.db.add(stat_record)
 
         self.db.commit()
-        print("Statistics calculation and storage completed.")
+        log.info("Statistics calculation complete for %s.", target_date)
 
     def get_segment_histogram(self, segment_id: str):
         print(f"Generating histogram for segment ID: {segment_id}")
