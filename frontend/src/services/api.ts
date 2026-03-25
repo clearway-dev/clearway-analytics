@@ -31,7 +31,8 @@ export async function downloadSegmentExport(
   mode: ExportMode,
   targetDate?: string,
   fromDate?: string,
-  toDate?: string
+  toDate?: string,
+  customFilename?: string
 ): Promise<void> {
   const params = new URLSearchParams({ format, mode });
   if (targetDate) params.set("target_date", targetDate);
@@ -43,8 +44,10 @@ export async function downloadSegmentExport(
   });
 
   const ext = format === "shapefile" ? "zip" : format;
-  const filename = res.headers["content-disposition"]
-    ?.match(/filename="?([^"]+)"?/)?.[1] ?? `clearway_export.${ext}`;
+  // Prefer the caller-supplied name; fall back to Content-Disposition then a generic default
+  const filename = customFilename
+    ? `${customFilename}.${ext}`
+    : res.headers["content-disposition"]?.match(/filename="?([^"]+)"?/)?.[1] ?? `clearway_export.${ext}`;
 
   const url = URL.createObjectURL(new Blob([res.data]));
   const a = document.createElement("a");

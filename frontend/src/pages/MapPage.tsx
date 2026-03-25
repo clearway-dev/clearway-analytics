@@ -1,8 +1,11 @@
-import BottomSheet from "../components/BottomSheet";
+import SegmentPanel from "../components/SegmentPanel";
 import FloatingPanel from "../components/FloatingPanel";
-import MapComponent, { type SegmentData } from "../components/MapComponent";
+import MapComponent, { type SegmentData, type FlyToTarget } from "../components/MapComponent";
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { LatLngTuple } from "leaflet";
+
+const DEFAULT_CENTER: LatLngTuple = [49.7384, 13.3736];
+const DEFAULT_ZOOM = 14;
 import { useSearchParams } from "react-router-dom";
 import type { ObstacleFeature } from "../components/ObstacleLayer";
 import { fetchAvailableDates } from "../services/api";
@@ -25,8 +28,8 @@ export default function MapPage() {
 
   const [isLiveMode, setIsLiveMode] = useState<boolean>(() => !urlDate);
 
-  const [flyToTarget, setFlyToTarget] = useState<LatLngTuple | null>(() => {
-    if (urlLat && urlLon) return [parseFloat(urlLat), parseFloat(urlLon)];
+  const [flyToTarget, setFlyToTarget] = useState<FlyToTarget | null>(() => {
+    if (urlLat && urlLon) return { center: [parseFloat(urlLat), parseFloat(urlLon)], zoom: 16 };
     return null;
   });
 
@@ -73,18 +76,37 @@ export default function MapPage() {
   // ------------------------------------------------------------------
   // Routing handlers
   // ------------------------------------------------------------------
+
+  // Sets the route start point — enables routing mode and clears any existing end + route
+  function handleSetRouteStart(lat: number, lon: number) {
+    if (!routingMode) setRoutingMode(true);
+    setSelectedSegment(null);
+    setRouteStart([lat, lon]);
+    setRouteEnd(null);
+    setRouteGeoJson(null);
+    setRouteDistance(null);
+    setRouteError(null);
+  }
+
+  // Sets the route end point and triggers route calculation if start is already set
+  function handleSetRouteEnd(lat: number, lon: number) {
+    if (!routingMode) setRoutingMode(true);
+    const end: LatLngTuple = [lat, lon];
+    setRouteEnd(end);
+    if (routeStartRef.current) {
+      fetchRoute(routeStartRef.current, end);
+    }
+    setRouteError(null);
+  }
+
+  // Map click: first click = start, second click = end
   function handleRouteMapClick(lat: number, lon: number) {
     if (!routeStart) {
-      setRouteStart([lat, lon]);
-      setRouteGeoJson(null);
-      setRouteError(null);
-      setRouteDistance(null);
+      handleSetRouteStart(lat, lon);
     } else if (!routeEnd) {
-      const end: LatLngTuple = [lat, lon];
-      setRouteEnd(end);
-      fetchRoute(routeStart, end);
+      handleSetRouteEnd(lat, lon);
     }
-    // If both are already set, ignore further clicks until user clears
+    // Both already set — ignore further clicks until user clears
   }
 
   const fetchRoute = useCallback(async (start: LatLngTuple, end: LatLngTuple) => {
@@ -112,16 +134,6 @@ export default function MapPage() {
       setRouteLoading(false);
     }
   }, [vehicleWidth, mapDate]);
-
-  function handleSelectStationAsStart(lat: number, lon: number) {
-    if (!routingMode) setRoutingMode(true);
-    setSelectedSegment(null);
-    setRouteStart([lat, lon]);
-    setRouteEnd(null);
-    setRouteGeoJson(null);
-    setRouteDistance(null);
-    setRouteError(null);
-  }
 
   // Recalculate existing route when vehicle width or date changes (debounced).
   // fetchRoute is a useCallback that updates when vehicleWidth/mapDate change,
@@ -158,7 +170,12 @@ export default function MapPage() {
       {/* Map layer */}
       <div className="absolute inset-0 z-0">
         <MapComponent
-          onSegmentSelect={(data) => { if (!routingMode) setSelectedSegment(data); }}
+          onSegmentSelect={(data) => {
+            if (!routingMode) {
+              setSelectedSegment(data);
+              if (data) setFlyToTarget({ center: data.center, zoom: 16 });
+            }
+          }}
           vehicleWidth={vehicleWidth}
           selectedDate={mapDate}
           flyToTarget={flyToTarget}
@@ -180,10 +197,11 @@ export default function MapPage() {
         mapDate={mapDate}
         isLiveMode={isLiveMode}
         setIsLiveMode={handleLiveModeChange}
-        onSearchResultSelect={(lat, lon) => setFlyToTarget([lat, lon])}
+        onSearchResultSelect={(lat, lon) => setFlyToTarget({ center: [lat, lon], zoom: 16 })}
         availableDates={availableDates}
         routingMode={routingMode}
-        onSelectStationAsStart={handleSelectStationAsStart}
+        onSetRouteStart={handleSetRouteStart}
+        onSetRouteEnd={handleSetRouteEnd}
         onToggleRouting={() => {
           if (routingMode) {
             clearRoute();
@@ -205,10 +223,13 @@ export default function MapPage() {
         routeDistance={routeDistance}
       />
 
-      {/* Segment detail bottom sheet */}
-      <BottomSheet
+      {/* Segment detail panel */}
+      <SegmentPanel
         data={selectedSegment}
-        onClose={() => setSelectedSegment(null)}
+        onClose={() => {
+          setSelectedSegment(null);
+          setFlyToTarget({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
+        }}
       />
     </div>
   );

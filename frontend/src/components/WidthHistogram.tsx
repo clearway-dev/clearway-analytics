@@ -43,7 +43,7 @@ export default function WidthHistogram({ segmentId }: WidthHistogramProps) {
     );
 
   return (
-    <div className="w-full h-48 mt-2">
+    <div className="w-72 h-48 mt-2">
       <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">
         Distribuce šířky (cm)
       </h4>
@@ -53,12 +53,13 @@ export default function WidthHistogram({ segmentId }: WidthHistogramProps) {
           margin={{ top: 5, right: 0, left: -20, bottom: 0 }}
         >
           <XAxis
-            dataKey="range"
+            dataKey="min"
             tick={{ fontSize: 10 }}
-            interval={0} 
-            angle={0} 
-            textAnchor="middle"
-            height={40}
+            interval={1}
+            angle={-45}
+            textAnchor="end"
+            height={48}
+            tickFormatter={(v: number) => `${v}`}
           />
           <YAxis tick={{ fontSize: 10 }} allowDecimals={false} />
           <Tooltip

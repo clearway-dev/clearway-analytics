@@ -1,5 +1,5 @@
 import type { LatLngTuple } from "leaflet";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CircleMarker,
   GeoJSON,
@@ -20,6 +20,7 @@ export interface SegmentData {
   min_width: number | null;
   measurements_count: number | null;
   status: "ok" | "narrow" | "no_data";
+  center: LatLngTuple;
 }
 
 interface SegmentProperties {
@@ -29,11 +30,16 @@ interface SegmentProperties {
   measurements_count: number | null;
 }
 
+export interface FlyToTarget {
+  center: LatLngTuple;
+  zoom: number;
+}
+
 interface MapComponentProps {
   onSegmentSelect: (data: SegmentData | null) => void;
   vehicleWidth: number;
   selectedDate: string;
-  flyToTarget: LatLngTuple | null;
+  flyToTarget: FlyToTarget | null;
   obstacles?: ObstacleFeature[];
   // Routing
   routingMode: boolean;
@@ -48,19 +54,23 @@ type SegmentFeature = Feature<Geometry, SegmentProperties>;
 // -----------------------------------------------------------------------
 // Fly-to controller
 // -----------------------------------------------------------------------
-function MapController({ target }: { target: LatLngTuple | null }) {
+function MapController({ target }: { target: FlyToTarget | null }) {
   const map = useMap();
   useEffect(() => {
     if (target) {
-      map.flyTo(target, 16, { duration: 1.5 });
+      map.flyTo(target.center, target.zoom, { duration: 1.5 });
     }
   }, [target, map]);
   return null;
 }
 
 // -----------------------------------------------------------------------
-// Bbox loader — fetches segments for current viewport on mount + moveend
+// Bbox loader — fetches segments for current viewport on mount + moveend + zoomend.
+// Skips the API call when zoomed out below MIN_ZOOM and clears stale data instead.
 // -----------------------------------------------------------------------
+const MIN_ZOOM = 14;
+const DEBOUNCE_MS = 300;
+
 function BboxLoader({
   selectedDate,
   onData,
@@ -69,29 +79,41 @@ function BboxLoader({
   onData: (data: GeoJsonObject) => void;
 }) {
   const map = useMap();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const fetchBbox = useCallback(async () => {
-    const b = map.getBounds();
-    const params = new URLSearchParams({
-      min_lat: b.getSouth().toString(),
-      min_lon: b.getWest().toString(),
-      max_lat: b.getNorth().toString(),
-      max_lon: b.getEast().toString(),
-      target_date: selectedDate,
-    });
-    try {
-      const res = await apiClient.get(`/api/maps/bbox?${params}`);
-      onData(res.data);
-    } catch (err) {
-      console.error("Error fetching road segments:", err);
-    }
+  const scheduleFetch = useCallback(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    timerRef.current = setTimeout(async () => {
+      // Below MIN_ZOOM the bbox is too large — clear segments and bail out
+      if (map.getZoom() < MIN_ZOOM) {
+        onData({ type: "FeatureCollection", features: [] } as GeoJsonObject);
+        return;
+      }
+
+      const b = map.getBounds();
+      const params = new URLSearchParams({
+        min_lat: b.getSouth().toString(),
+        min_lon: b.getWest().toString(),
+        max_lat: b.getNorth().toString(),
+        max_lon: b.getEast().toString(),
+        target_date: selectedDate,
+      });
+      try {
+        const res = await apiClient.get(`/api/maps/bbox?${params}`);
+        onData(res.data);
+      } catch (err) {
+        console.error("Error fetching road segments:", err);
+      }
+    }, DEBOUNCE_MS);
   }, [map, selectedDate, onData]);
 
   useEffect(() => {
-    fetchBbox();
-  }, [fetchBbox]);
+    scheduleFetch();
+    return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+  }, [scheduleFetch]);
 
-  useMapEvents({ moveend: fetchBbox });
+  useMapEvents({ moveend: scheduleFetch, zoomend: scheduleFetch });
 
   return null;
 }
@@ -163,6 +185,11 @@ export default function MapComponent({
         const avg = p.avg_width;
         const status =
           avg == null ? "no_data" : avg >= vehicleWidth ? "ok" : "narrow";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const leafletCenter = (layer as any).getBounds?.().getCenter();
+        const center: LatLngTuple = leafletCenter
+          ? [leafletCenter.lat, leafletCenter.lng]
+          : [0, 0];
         onSegmentSelect({
           segment_id: feature.id as string,
           name: p.name ?? "Unknown Road",
@@ -170,6 +197,7 @@ export default function MapComponent({
           min_width: p.min_width,
           measurements_count: p.measurements_count,
           status,
+          center,
         });
       },
     });
@@ -178,7 +206,7 @@ export default function MapComponent({
   return (
     <MapContainer
       center={position}
-      zoom={13}
+      zoom={14}
       className={`h-full w-full${routingMode ? " cursor-crosshair" : ""}`}
       zoomControl={false}
     >
