@@ -1,10 +1,122 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import apiClient from "../lib/api";
 import { Calendar } from "./ui/calendar";
 import { format } from "date-fns";
 import { Search, CalendarIcon, ChevronDown, Navigation, X, Loader2 } from "lucide-react";
 import type { LatLngTuple } from "leaflet";
 
+
+// ─── Nominatim result type ───────────────────────────────────────────────────
+
+interface NominatimResult {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+}
+
+// ─── Reusable address search hook ────────────────────────────────────────────
+
+function useAddressSearch() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<NominatimResult[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (query.length < 3) { setResults([]); return; }
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({
+          q: query, format: "json", limit: "6",
+          addressdetails: "1", countrycodes: "cz",
+        });
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/search?${params}`,
+          { headers: { "User-Agent": "ClearWayAnalytics/1.0 (thesis project)" } },
+        );
+        const data: { place_id: string; lat: string; lon: string; display_name: string }[] =
+          await res.json();
+        setResults(
+          data.map((item) => ({
+            id: item.place_id,
+            name: item.display_name,
+            lat: parseFloat(item.lat),
+            lon: parseFloat(item.lon),
+          })),
+        );
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  return { query, setQuery, results, setResults, loading };
+}
+
+// ─── Route search input sub-component ────────────────────────────────────────
+
+interface RouteSearchInputProps {
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  results: NominatimResult[];
+  loading: boolean;
+  onSelect: (result: NominatimResult) => void;
+  dotColor: string;
+}
+
+function RouteSearchInput({
+  placeholder,
+  value,
+  onChange,
+  results,
+  loading,
+  onSelect,
+  dotColor,
+}: RouteSearchInputProps) {
+  return (
+    <div className="relative">
+      <div className="flex items-center gap-2">
+        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
+        <div className="relative flex-1">
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            className="w-full pl-3 pr-7 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+          {loading && (
+            <span className="absolute right-2.5 top-2 text-gray-400 text-xs">…</span>
+          )}
+        </div>
+      </div>
+      {results.length > 0 && (
+        <ul className="absolute left-5 right-0 z-50 bg-white border border-gray-100 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+          {results.map((r) => (
+            <li
+              key={r.id}
+              // onMouseDown prevents input blur from closing the list before click fires
+              onMouseDown={() => onSelect(r)}
+              className="px-3 py-1.5 hover:bg-blue-50 cursor-pointer text-xs text-gray-700 border-b border-gray-50 last:border-0"
+            >
+              <span className="font-medium">{r.name.split(",")[0]}</span>
+              <span className="text-gray-400 ml-1">
+                {r.name.split(",").slice(1, 3).join(",")}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ─── Component interfaces ─────────────────────────────────────────────────────
 
 interface SearchResult {
   id: string;
@@ -16,7 +128,7 @@ interface SearchResult {
 interface VehicleOption {
   id: string;
   name: string;
-  width: number | null; // cm
+  width: number | null;
 }
 
 interface StationOption {
@@ -27,7 +139,7 @@ interface StationOption {
 }
 
 interface FloatingPanelProps {
-  vehicleWidth: number; // cm
+  vehicleWidth: number;
   setVehicleWidth: (width: number) => void;
   selectedDate: string;
   setSelectedDate: (date: string) => void;
@@ -40,7 +152,8 @@ interface FloatingPanelProps {
   routingMode: boolean;
   onToggleRouting: () => void;
   onClearRoute: () => void;
-  onSelectStationAsStart: (lat: number, lon: number) => void;
+  onSetRouteStart: (lat: number, lon: number) => void;
+  onSetRouteEnd: (lat: number, lon: number) => void;
   routeStart: LatLngTuple | null;
   routeEnd: LatLngTuple | null;
   routeLoading: boolean;
@@ -52,6 +165,8 @@ function formatDisplayDate(isoDate: string): string {
   const [y, m, d] = isoDate.split("-");
   return `${d}/${m}/${y}`;
 }
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export default function FloatingPanel({
   vehicleWidth,
@@ -66,7 +181,8 @@ export default function FloatingPanel({
   routingMode,
   onToggleRouting,
   onClearRoute,
-  onSelectStationAsStart,
+  onSetRouteStart,
+  onSetRouteEnd,
   routeStart,
   routeEnd,
   routeLoading,
@@ -83,12 +199,53 @@ export default function FloatingPanel({
   const [widthInput, setWidthInput] = useState<string>(String(vehicleWidth));
   const [stations, setStations] = useState<StationOption[]>([]);
 
-  // Keep widthInput in sync when vehicleWidth changes from outside (e.g. vehicle select)
+  // Routing address search state
+  const startSearch = useAddressSearch();
+  const endSearch = useAddressSearch();
+
+  // Refs to detect whether the input itself set routeStart/End (skip prop→text sync)
+  const startSetByInput = useRef(false);
+  const endSetByInput = useRef(false);
+
+  // Sync routeStart prop → start text field (only when set externally, e.g. map click)
+  useEffect(() => {
+    if (startSetByInput.current) { startSetByInput.current = false; return; }
+    if (routeStart) {
+      startSearch.setQuery(`${routeStart[0].toFixed(5)}, ${routeStart[1].toFixed(5)}`);
+      startSearch.setResults([]);
+    } else {
+      startSearch.setQuery("");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeStart]);
+
+  // Sync routeEnd prop → end text field
+  useEffect(() => {
+    if (endSetByInput.current) { endSetByInput.current = false; return; }
+    if (routeEnd) {
+      endSearch.setQuery(`${routeEnd[0].toFixed(5)}, ${routeEnd[1].toFixed(5)}`);
+      endSearch.setResults([]);
+    } else {
+      endSearch.setQuery("");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeEnd]);
+
+  // Clear route inputs when routing mode is turned off
+  useEffect(() => {
+    if (!routingMode) {
+      startSearch.setQuery("");
+      startSearch.setResults([]);
+      endSearch.setQuery("");
+      endSearch.setResults([]);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routingMode]);
+
   useEffect(() => {
     setWidthInput(String(vehicleWidth));
   }, [vehicleWidth]);
 
-  // Fetch vehicle list and station list once on mount
   useEffect(() => {
     apiClient.get<VehicleOption[]>("/api/vehicles/")
       .then((r) => setVehicles(r.data))
@@ -99,17 +256,14 @@ export default function FloatingPanel({
       .catch(() => setStations([]));
   }, []);
 
-  // Debounced address search via Nominatim
+  // Debounced map address search (for the top "Hledat ulici" field)
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.length >= 3) {
         setIsSearchLoading(true);
         const params = new URLSearchParams({
-          q: searchQuery,
-          format: "json",
-          limit: "6",
-          addressdetails: "1",
-          countrycodes: "cz",
+          q: searchQuery, format: "json", limit: "6",
+          addressdetails: "1", countrycodes: "cz",
         });
         fetch(`https://nominatim.openstreetmap.org/search?${params}`, {
           headers: { "User-Agent": "ClearWayAnalytics/1.0 (thesis project)" },
@@ -188,6 +342,20 @@ export default function FloatingPanel({
     }
   }
 
+  function handleStartSelect(result: NominatimResult) {
+    startSetByInput.current = true;
+    startSearch.setQuery(result.name.split(",")[0].trim());
+    startSearch.setResults([]);
+    onSetRouteStart(result.lat, result.lon);
+  }
+
+  function handleEndSelect(result: NominatimResult) {
+    endSetByInput.current = true;
+    endSearch.setQuery(result.name.split(",")[0].trim());
+    endSearch.setResults([]);
+    onSetRouteEnd(result.lat, result.lon);
+  }
+
   return (
     <div className="absolute top-4 left-4 z-[1000] bg-white p-4 rounded-xl shadow-lg w-80 max-w-[90vw] border border-gray-100">
 
@@ -232,7 +400,6 @@ export default function FloatingPanel({
           Šířka vozidla
         </label>
 
-        {/* Vehicle selector */}
         <div className="relative mb-2">
           <select
             value={selectedVehicleId}
@@ -241,11 +408,7 @@ export default function FloatingPanel({
           >
             <option value="">— Zadat ručně —</option>
             {vehicles.map((v) => (
-              <option
-                key={v.id}
-                value={v.id}
-                disabled={v.width == null}
-              >
+              <option key={v.id} value={v.id} disabled={v.width == null}>
                 {v.name}{v.width != null ? ` (${v.width} cm)` : " — bez šířky"}
               </option>
             ))}
@@ -253,7 +416,6 @@ export default function FloatingPanel({
           <ChevronDown className="absolute right-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
         </div>
 
-        {/* Slider + number input */}
         <div className="flex items-center gap-2">
           <input
             type="range"
@@ -315,7 +477,6 @@ export default function FloatingPanel({
           </button>
         </div>
 
-        {/* Current date display (always visible) */}
         {!isLiveMode && (
           <div className="relative animate-in fade-in slide-in-from-top-2 duration-300">
             <button
@@ -387,60 +548,76 @@ export default function FloatingPanel({
           {routingMode ? "Trasování aktivní" : "Hledat trasu"}
         </button>
 
-        {/* Station as route start */}
-        {stations.length > 0 && (
-          <div className="relative mt-2">
-            <select
-              defaultValue=""
-              onChange={(e) => {
-                const station = stations.find((s) => s.id === e.target.value);
-                if (station) {
-                  onSelectStationAsStart(station.lat, station.lon);
-                  e.target.value = "";
-                }
-              }}
-              className="w-full appearance-none border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 truncate"
-            >
-              <option value="" disabled>Start ze stanice…</option>
-              {stations.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
-            <ChevronDown className="absolute right-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
-          </div>
-        )}
-
-        {/* Status */}
         {routingMode && (
-          <div className="mt-2 text-xs text-gray-500 space-y-1">
-            {routeLoading && (
-              <div className="flex items-center gap-1.5 text-blue-600">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                Výpočet trasy…
+          <div className="mt-3 space-y-2">
+            {/* Start address search */}
+            <RouteSearchInput
+              placeholder="Odkud…"
+              value={startSearch.query}
+              onChange={startSearch.setQuery}
+              results={startSearch.results}
+              loading={startSearch.loading}
+              onSelect={handleStartSelect}
+              dotColor="bg-green-500"
+            />
+
+            {/* End address search */}
+            <RouteSearchInput
+              placeholder="Kam…"
+              value={endSearch.query}
+              onChange={endSearch.setQuery}
+              results={endSearch.results}
+              loading={endSearch.loading}
+              onSelect={handleEndSelect}
+              dotColor="bg-red-500"
+            />
+
+            {/* Station as route start */}
+            {stations.length > 0 && (
+              <div className="relative">
+                <select
+                  defaultValue=""
+                  onChange={(e) => {
+                    const station = stations.find((s) => s.id === e.target.value);
+                    if (station) {
+                      onSetRouteStart(station.lat, station.lon);
+                      e.target.value = "";
+                    }
+                  }}
+                  className="w-full appearance-none border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 truncate"
+                >
+                  <option value="" disabled>Start ze stanice…</option>
+                  {stations.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
               </div>
             )}
-            {!routeLoading && !routeStart && (
-              <p className="flex items-center gap-1.5">
-                <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-                Klikněte na startovní bod na mapě
-              </p>
-            )}
-            {!routeLoading && routeStart && !routeEnd && (
-              <p className="flex items-center gap-1.5">
-                <span className="inline-block w-2 h-2 rounded-full bg-red-500"></span>
-                Klikněte na cílový bod na mapě
-              </p>
-            )}
-            {!routeLoading && routeDistance != null && (
-              <p className="font-medium text-gray-700">
-                Trasa: {routeDistance >= 1000
-                  ? `${(routeDistance / 1000).toFixed(2)} km`
-                  : `${routeDistance} m`}
-              </p>
-            )}
-            {!routeLoading && routeError && (
-              <p className="text-red-500">{routeError}</p>
-            )}
+
+            {/* Status */}
+            <div className="text-xs text-gray-500 space-y-1 pt-1">
+              {routeLoading && (
+                <div className="flex items-center gap-1.5 text-blue-600">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Výpočet trasy…
+                </div>
+              )}
+              {!routeLoading && !routeStart && (
+                <p className="text-gray-400">Klikněte na mapu nebo zadejte adresu</p>
+              )}
+              {!routeLoading && routeDistance != null && (
+                <p className="font-medium text-gray-700">
+                  Trasa:{" "}
+                  {routeDistance >= 1000
+                    ? `${(routeDistance / 1000).toFixed(2)} km`
+                    : `${routeDistance} m`}
+                </p>
+              )}
+              {!routeLoading && routeError && (
+                <p className="text-red-500">{routeError}</p>
+              )}
+            </div>
           </div>
         )}
       </div>

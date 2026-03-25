@@ -73,18 +73,37 @@ export default function MapPage() {
   // ------------------------------------------------------------------
   // Routing handlers
   // ------------------------------------------------------------------
+
+  // Sets the route start point — enables routing mode and clears any existing end + route
+  function handleSetRouteStart(lat: number, lon: number) {
+    if (!routingMode) setRoutingMode(true);
+    setSelectedSegment(null);
+    setRouteStart([lat, lon]);
+    setRouteEnd(null);
+    setRouteGeoJson(null);
+    setRouteDistance(null);
+    setRouteError(null);
+  }
+
+  // Sets the route end point and triggers route calculation if start is already set
+  function handleSetRouteEnd(lat: number, lon: number) {
+    if (!routingMode) setRoutingMode(true);
+    const end: LatLngTuple = [lat, lon];
+    setRouteEnd(end);
+    if (routeStartRef.current) {
+      fetchRoute(routeStartRef.current, end);
+    }
+    setRouteError(null);
+  }
+
+  // Map click: first click = start, second click = end
   function handleRouteMapClick(lat: number, lon: number) {
     if (!routeStart) {
-      setRouteStart([lat, lon]);
-      setRouteGeoJson(null);
-      setRouteError(null);
-      setRouteDistance(null);
+      handleSetRouteStart(lat, lon);
     } else if (!routeEnd) {
-      const end: LatLngTuple = [lat, lon];
-      setRouteEnd(end);
-      fetchRoute(routeStart, end);
+      handleSetRouteEnd(lat, lon);
     }
-    // If both are already set, ignore further clicks until user clears
+    // Both already set — ignore further clicks until user clears
   }
 
   const fetchRoute = useCallback(async (start: LatLngTuple, end: LatLngTuple) => {
@@ -112,16 +131,6 @@ export default function MapPage() {
       setRouteLoading(false);
     }
   }, [vehicleWidth, mapDate]);
-
-  function handleSelectStationAsStart(lat: number, lon: number) {
-    if (!routingMode) setRoutingMode(true);
-    setSelectedSegment(null);
-    setRouteStart([lat, lon]);
-    setRouteEnd(null);
-    setRouteGeoJson(null);
-    setRouteDistance(null);
-    setRouteError(null);
-  }
 
   // Recalculate existing route when vehicle width or date changes (debounced).
   // fetchRoute is a useCallback that updates when vehicleWidth/mapDate change,
@@ -183,7 +192,8 @@ export default function MapPage() {
         onSearchResultSelect={(lat, lon) => setFlyToTarget([lat, lon])}
         availableDates={availableDates}
         routingMode={routingMode}
-        onSelectStationAsStart={handleSelectStationAsStart}
+        onSetRouteStart={handleSetRouteStart}
+        onSetRouteEnd={handleSetRouteEnd}
         onToggleRouting={() => {
           if (routingMode) {
             clearRoute();
