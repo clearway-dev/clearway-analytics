@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Calendar } from "../components/ui/calendar";
 import { format } from "date-fns";
-import { CalendarIcon, Download, FileJson, FileSpreadsheet, Map } from "lucide-react";
+import { CalendarIcon, Download, FileJson, FileSpreadsheet, Loader2, Map } from "lucide-react";
 import { Card, CardContent } from "../components/ui/card";
 import {
   fetchAvailableDates,
@@ -16,6 +16,11 @@ import {
 
 function today(): string {
   return new Date().toISOString().split("T")[0];
+}
+
+function defaultFilename(): string {
+  // e.g. "clearway_export_2026_03_25"
+  return `clearway_export_${today().replaceAll("-", "_")}`;
 }
 
 const MODES: { id: ExportMode; label: string; description: string }[] = [
@@ -140,8 +145,10 @@ export default function ExportPage() {
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [preview, setPreview] = useState<ExportPreview | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [fileName, setFileName] = useState(defaultFilename);
 
-  // seed dates from API
+  // Seed dates from API
   useEffect(() => {
     fetchAvailableDates().then((dates) => {
       setAvailableDates(dates);
@@ -153,11 +160,9 @@ export default function ExportPage() {
     });
   }, []);
 
-  // live preview whenever mode/dates change
+  // Live preview whenever mode/dates change
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreviewLoading(true);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setPreview(null);
     const td = mode === "single" ? singleDate : undefined;
     const fd = mode === "range" ? fromDate : undefined;
@@ -169,14 +174,22 @@ export default function ExportPage() {
       .finally(() => setPreviewLoading(false));
   }, [mode, singleDate, fromDate, toDate]);
 
-  function handleDownload() {
+  async function handleDownload() {
     const td = mode === "single" ? singleDate : undefined;
     const fd = mode === "range" ? fromDate : undefined;
     const tod = mode === "range" ? toDate : undefined;
-    downloadSegmentExport(exportFormat, mode, td, fd, tod);
+    // Trim whitespace; fall back to default if user cleared the field
+    const name = fileName.trim() || defaultFilename();
+    setIsExporting(true);
+    try {
+      await downloadSegmentExport(exportFormat, mode, td, fd, tod, name);
+    } finally {
+      setIsExporting(false);
+    }
   }
 
-  const canDownload = !previewLoading && preview !== null && preview.segment_count > 0;
+  const selectedFormat = FORMATS.find((f) => f.id === exportFormat);
+  const canDownload = !previewLoading && !isExporting && preview !== null && preview.segment_count > 0;
 
   return (
     <div className="h-full flex flex-col bg-gray-50/50">
@@ -335,14 +348,33 @@ export default function ExportPage() {
                         <p>{preview.date_from} → {preview.date_to}<br />{preview.days_with_data} dní s daty</p>
                       )}
                       <p className="font-medium text-gray-700">
-                        {FORMATS.find((f) => f.id === exportFormat)?.label}{" "}
-                        <span className="font-normal text-gray-400">
-                          {FORMATS.find((f) => f.id === exportFormat)?.ext}
-                        </span>
+                        {selectedFormat?.label}{" "}
+                        <span className="font-normal text-gray-400">{selectedFormat?.ext}</span>
                       </p>
                     </div>
                   </div>
                 )}
+              </CardContent>
+            </Card>
+
+            {/* Filename input */}
+            <Card>
+              <CardContent className="p-5 space-y-2">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Název souboru
+                </h3>
+                <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+                  <input
+                    type="text"
+                    value={fileName}
+                    onChange={(e) => setFileName(e.target.value)}
+                    className="flex-1 px-3 py-2 text-sm text-gray-800 bg-white focus:outline-none"
+                    placeholder={defaultFilename()}
+                  />
+                  <span className="px-3 py-2 text-sm text-gray-400 bg-gray-50 border-l border-gray-200 select-none">
+                    {selectedFormat?.ext}
+                  </span>
+                </div>
               </CardContent>
             </Card>
 
@@ -351,8 +383,17 @@ export default function ExportPage() {
               disabled={!canDownload}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
             >
-              <Download className="h-4 w-4" />
-              Stáhnout {FORMATS.find((f) => f.id === exportFormat)?.ext}
+              {isExporting ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Generuji…
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4" />
+                  Stáhnout {selectedFormat?.ext}
+                </>
+              )}
             </button>
           </div>
 
