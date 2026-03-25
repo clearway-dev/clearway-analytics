@@ -30,11 +30,16 @@ interface SegmentProperties {
   measurements_count: number | null;
 }
 
+export interface FlyToTarget {
+  center: LatLngTuple;
+  zoom: number;
+}
+
 interface MapComponentProps {
   onSegmentSelect: (data: SegmentData | null) => void;
   vehicleWidth: number;
   selectedDate: string;
-  flyToTarget: LatLngTuple | null;
+  flyToTarget: FlyToTarget | null;
   obstacles?: ObstacleFeature[];
   // Routing
   routingMode: boolean;
@@ -49,11 +54,11 @@ type SegmentFeature = Feature<Geometry, SegmentProperties>;
 // -----------------------------------------------------------------------
 // Fly-to controller
 // -----------------------------------------------------------------------
-function MapController({ target }: { target: LatLngTuple | null }) {
+function MapController({ target }: { target: FlyToTarget | null }) {
   const map = useMap();
   useEffect(() => {
     if (target) {
-      map.flyTo(target, 16, { duration: 1.5 });
+      map.flyTo(target.center, target.zoom, { duration: 1.5 });
     }
   }, [target, map]);
   return null;
@@ -201,7 +206,7 @@ export default function MapComponent({
   return (
     <MapContainer
       center={position}
-      zoom={13}
+      zoom={14}
       className={`h-full w-full${routingMode ? " cursor-crosshair" : ""}`}
       zoomControl={false}
     >

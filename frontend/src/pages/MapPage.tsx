@@ -1,8 +1,11 @@
 import SegmentPanel from "../components/SegmentPanel";
 import FloatingPanel from "../components/FloatingPanel";
-import MapComponent, { type SegmentData } from "../components/MapComponent";
+import MapComponent, { type SegmentData, type FlyToTarget } from "../components/MapComponent";
 import { useState, useEffect, useRef, useCallback } from "react";
 import type { LatLngTuple } from "leaflet";
+
+const DEFAULT_CENTER: LatLngTuple = [49.7384, 13.3736];
+const DEFAULT_ZOOM = 14;
 import { useSearchParams } from "react-router-dom";
 import type { ObstacleFeature } from "../components/ObstacleLayer";
 import { fetchAvailableDates } from "../services/api";
@@ -25,8 +28,8 @@ export default function MapPage() {
 
   const [isLiveMode, setIsLiveMode] = useState<boolean>(() => !urlDate);
 
-  const [flyToTarget, setFlyToTarget] = useState<LatLngTuple | null>(() => {
-    if (urlLat && urlLon) return [parseFloat(urlLat), parseFloat(urlLon)];
+  const [flyToTarget, setFlyToTarget] = useState<FlyToTarget | null>(() => {
+    if (urlLat && urlLon) return { center: [parseFloat(urlLat), parseFloat(urlLon)], zoom: 16 };
     return null;
   });
 
@@ -170,7 +173,7 @@ export default function MapPage() {
           onSegmentSelect={(data) => {
             if (!routingMode) {
               setSelectedSegment(data);
-              if (data) setFlyToTarget(data.center);
+              if (data) setFlyToTarget({ center: data.center, zoom: 16 });
             }
           }}
           vehicleWidth={vehicleWidth}
@@ -194,7 +197,7 @@ export default function MapPage() {
         mapDate={mapDate}
         isLiveMode={isLiveMode}
         setIsLiveMode={handleLiveModeChange}
-        onSearchResultSelect={(lat, lon) => setFlyToTarget([lat, lon])}
+        onSearchResultSelect={(lat, lon) => setFlyToTarget({ center: [lat, lon], zoom: 16 })}
         availableDates={availableDates}
         routingMode={routingMode}
         onSetRouteStart={handleSetRouteStart}
@@ -223,7 +226,10 @@ export default function MapPage() {
       {/* Segment detail panel */}
       <SegmentPanel
         data={selectedSegment}
-        onClose={() => setSelectedSegment(null)}
+        onClose={() => {
+          setSelectedSegment(null);
+          setFlyToTarget({ center: DEFAULT_CENTER, zoom: DEFAULT_ZOOM });
+        }}
       />
     </div>
   );
