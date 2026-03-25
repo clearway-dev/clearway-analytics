@@ -179,179 +179,184 @@ export default function ExportPage() {
   const canDownload = !previewLoading && preview !== null && preview.segment_count > 0;
 
   return (
-    <div className="h-full w-full bg-gray-50/50 overflow-y-auto">
-      <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
+    <div className="h-full flex flex-col bg-gray-50/50">
+      <div className="flex-none px-6 pt-6 pb-2">
+        <h2 className="text-2xl font-bold tracking-tight text-gray-900">Export dat</h2>
+        <p className="text-sm text-gray-500 mt-1">
+          Stáhněte data průjezdnosti ve standardních GIS formátech.
+        </p>
+      </div>
 
-        {/* Header */}
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight text-gray-900">Export dat</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Stáhněte data průjezdnosti ve standardních GIS formátech.
-          </p>
-        </div>
+      <div className="flex-1 p-6 pt-2 overflow-auto">
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-6 items-start">
 
-        {/* ── 1. Time range mode ── */}
-        <section className="space-y-3">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Časový rozsah
-          </h3>
+          {/* ── Left column: controls ── */}
+          <div className="space-y-6">
 
-          <div className="flex bg-white border border-gray-200 rounded-xl p-1 gap-1">
-            {MODES.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => setMode(m.id)}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all text-center ${
-                  mode === m.id
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-600 hover:bg-gray-50"
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
-          </div>
+            {/* 1. Time range mode */}
+            <Card>
+              <CardContent className="p-5 space-y-3">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Časový rozsah
+                </h3>
 
-          <p className="text-xs text-gray-400">
-            {MODES.find((m) => m.id === mode)?.description}
-          </p>
-
-          {/* Date controls */}
-          {mode === "single" && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 w-12">Datum</span>
-              <DatePicker
-                value={singleDate}
-                onChange={setSingleDate}
-                availableDates={availableDates}
-              />
-            </div>
-          )}
-
-          {mode === "range" && (
-            <div className="flex items-center gap-3 flex-wrap">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 w-8">Od</span>
-                <DatePicker
-                  value={fromDate}
-                  onChange={setFromDate}
-                  availableDates={availableDates}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600 w-8">Do</span>
-                <DatePicker
-                  value={toDate}
-                  onChange={setToDate}
-                  availableDates={availableDates}
-                  popoverAlign="right"
-                />
-              </div>
-            </div>
-          )}
-
-          {mode === "all" && (
-            <p className="text-sm text-gray-500">
-              Zahrnuje veškerá měření v databázi, agregovaná podle úseku.
-            </p>
-          )}
-        </section>
-
-        {/* ── 2. Format ── */}
-        <section className="space-y-3">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Formát
-          </h3>
-
-          <div className="grid grid-cols-3 gap-3">
-            {FORMATS.map(({ id, label, ext, description, Icon }) => (
-              <button
-                key={id}
-                onClick={() => setExportFormat(id)}
-                className={`flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all ${
-                  exportFormat === id
-                    ? "border-blue-500 bg-blue-50"
-                    : "border-gray-200 bg-white hover:border-gray-300"
-                }`}
-              >
-                <Icon
-                  className={`h-5 w-5 mb-2 ${
-                    exportFormat === id ? "text-blue-600" : "text-gray-400"
-                  }`}
-                />
-                <span
-                  className={`text-sm font-semibold ${
-                    exportFormat === id ? "text-blue-700" : "text-gray-800"
-                  }`}
-                >
-                  {label}
-                </span>
-                <span className="text-xs text-gray-400 mt-0.5">{ext}</span>
-                <span className="text-xs text-gray-500 mt-1 leading-tight">{description}</span>
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* ── 3. Preview + download ── */}
-        <section className="space-y-3">
-          <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Náhled
-          </h3>
-
-          <Card>
-            <CardContent className="p-4">
-              {previewLoading && (
-                <p className="text-sm text-gray-400">Načítám…</p>
-              )}
-              {!previewLoading && preview === null && (
-                <p className="text-sm text-red-400">Náhled nelze načíst.</p>
-              )}
-              {!previewLoading && preview !== null && preview.segment_count === 0 && (
-                <p className="text-sm text-amber-600">
-                  Pro vybraný časový rozsah nebyla nalezena žádná data.
-                </p>
-              )}
-              {!previewLoading && preview !== null && preview.segment_count > 0 && (
-                <div className="flex items-center justify-between flex-wrap gap-3">
-                  <div className="space-y-1">
-                    <p className="text-2xl font-bold text-gray-900">
-                      {preview.segment_count.toLocaleString()}{" "}
-                      <span className="text-base font-normal text-gray-500">úseků</span>
-                    </p>
-                    {mode === "single" && (
-                      <p className="text-sm text-gray-500">
-                        Data z {preview.date_from}
-                      </p>
-                    )}
-                    {mode !== "single" && preview.date_from && (
-                      <p className="text-sm text-gray-500">
-                        {preview.date_from} → {preview.date_to} &middot;{" "}
-                        {preview.days_with_data} dní s daty
-                      </p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <span className="font-medium text-gray-700">
-                      {FORMATS.find((f) => f.id === exportFormat)?.label}
-                    </span>
-                    <span>{FORMATS.find((f) => f.id === exportFormat)?.ext}</span>
-                  </div>
+                <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+                  {MODES.map((m) => (
+                    <button
+                      key={m.id}
+                      onClick={() => setMode(m.id)}
+                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all text-center ${
+                        mode === m.id
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </CardContent>
-          </Card>
 
-          <button
-            onClick={handleDownload}
-            disabled={!canDownload}
-            className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
-          >
-            <Download className="h-4 w-4" />
-            Stáhnout {FORMATS.find((f) => f.id === exportFormat)?.ext}
-          </button>
-        </section>
+                <p className="text-xs text-gray-400">
+                  {MODES.find((m) => m.id === mode)?.description}
+                </p>
 
+                {mode === "single" && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600 w-12">Datum</span>
+                    <DatePicker
+                      value={singleDate}
+                      onChange={setSingleDate}
+                      availableDates={availableDates}
+                    />
+                  </div>
+                )}
+
+                {mode === "range" && (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 w-8">Od</span>
+                      <DatePicker
+                        value={fromDate}
+                        onChange={setFromDate}
+                        availableDates={availableDates}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600 w-8">Do</span>
+                      <DatePicker
+                        value={toDate}
+                        onChange={setToDate}
+                        availableDates={availableDates}
+                        popoverAlign="right"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {mode === "all" && (
+                  <p className="text-sm text-gray-500">
+                    Zahrnuje veškerá měření v databázi, agregovaná podle úseku.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* 2. Format */}
+            <Card>
+              <CardContent className="p-5 space-y-3">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Formát
+                </h3>
+
+                <div className="grid grid-cols-3 gap-3">
+                  {FORMATS.map(({ id, label, ext, description, Icon }) => (
+                    <button
+                      key={id}
+                      onClick={() => setExportFormat(id)}
+                      className={`flex flex-col items-start p-4 rounded-xl border-2 text-left transition-all ${
+                        exportFormat === id
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-200 bg-white hover:border-gray-300"
+                      }`}
+                    >
+                      <Icon
+                        className={`h-5 w-5 mb-2 ${
+                          exportFormat === id ? "text-blue-600" : "text-gray-400"
+                        }`}
+                      />
+                      <span
+                        className={`text-sm font-semibold ${
+                          exportFormat === id ? "text-blue-700" : "text-gray-800"
+                        }`}
+                      >
+                        {label}
+                      </span>
+                      <span className="text-xs text-gray-400 mt-0.5">{ext}</span>
+                      <span className="text-xs text-gray-500 mt-1 leading-tight">{description}</span>
+                    </button>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* ── Right column: preview + download ── */}
+          <div className="space-y-4 xl:sticky xl:top-0">
+            <Card>
+              <CardContent className="p-5 space-y-3">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  Náhled
+                </h3>
+
+                {previewLoading && (
+                  <p className="text-sm text-gray-400">Načítám…</p>
+                )}
+                {!previewLoading && preview === null && (
+                  <p className="text-sm text-red-400">Náhled nelze načíst.</p>
+                )}
+                {!previewLoading && preview !== null && preview.segment_count === 0 && (
+                  <p className="text-sm text-amber-600">
+                    Pro vybraný časový rozsah nebyla nalezena žádná data.
+                  </p>
+                )}
+                {!previewLoading && preview !== null && preview.segment_count > 0 && (
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-3xl font-bold text-gray-900">
+                        {preview.segment_count.toLocaleString()}
+                      </p>
+                      <p className="text-sm text-gray-500">úseků k exportu</p>
+                    </div>
+                    <div className="text-sm text-gray-500 space-y-1">
+                      {mode === "single" && (
+                        <p>Data z {preview.date_from}</p>
+                      )}
+                      {mode !== "single" && preview.date_from && (
+                        <p>{preview.date_from} → {preview.date_to}<br />{preview.days_with_data} dní s daty</p>
+                      )}
+                      <p className="font-medium text-gray-700">
+                        {FORMATS.find((f) => f.id === exportFormat)?.label}{" "}
+                        <span className="font-normal text-gray-400">
+                          {FORMATS.find((f) => f.id === exportFormat)?.ext}
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <button
+              onClick={handleDownload}
+              disabled={!canDownload}
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
+            >
+              <Download className="h-4 w-4" />
+              Stáhnout {FORMATS.find((f) => f.id === exportFormat)?.ext}
+            </button>
+          </div>
+
+        </div>
       </div>
     </div>
   );
