@@ -1,9 +1,8 @@
 import logging
 from sqlalchemy.orm import Session
 from datetime import date
-from sqlalchemy import text, select, cast, func
-from app.models import SegmentStatistics, RoadSegment, CleanedMeasurement
-from geoalchemy2 import Geography
+from sqlalchemy import text
+from app.models import SegmentStatistics
 
 log = logging.getLogger(__name__)
 
@@ -85,38 +84,31 @@ class AnalyticsService:
         self.db.commit()
         log.info("Statistics calculation complete for %s.", target_date)
 
-    def get_segment_histogram(self, segment_id: str):
-        print(f"Generating histogram for segment ID: {segment_id}")
+    def get_segment_histogram(self, segment_id: str) -> list[dict]:
+        """Return width distribution for a segment as 25 cm bins using SQL WIDTH_BUCKET."""
+        rows = self.db.execute(
+            text("""
+                WITH seg AS (
+                    SELECT geom FROM road_segments WHERE id = :segment_id
+                ),
+                bucketed AS (
+                    SELECT WIDTH_BUCKET(cm.cleaned_width, 0, 1000, 40) AS bucket
+                    FROM cleaned_measurements cm, seg
+                    WHERE ST_DWithin(cm.geom::geography, seg.geom::geography, 10)
+                      AND cm.cleaned_width BETWEEN 0 AND 1000
+                )
+                SELECT
+                    (bucket - 1) * 25  AS min,
+                    bucket * 25        AS max,
+                    COUNT(*)           AS count
+                FROM bucketed
+                GROUP BY bucket
+                ORDER BY bucket
+            """),
+            {"segment_id": segment_id},
+        ).fetchall()
 
-        segment_geom_subquery = (
-            select(RoadSegment.geom)
-            .where(RoadSegment.id == segment_id)
-            .scalar_subquery()
-        )
-
-        stmt_measurements = select(CleanedMeasurement.cleaned_width).filter(
-            func.ST_DWithin(
-                cast(CleanedMeasurement.geom, Geography),
-                cast(segment_geom_subquery, Geography),
-                10,
-            )
-        )
-
-        widths = self.db.scalars(stmt_measurements).all()
-
-        if not widths:
-            return []
-
-        bins = list(range(0, 1001, 25))
-
-        histogram_data = []
-
-        for i in range(len(bins) - 1):
-            lower = bins[i]
-            upper = bins[i + 1]
-            count = sum(1 for w in widths if lower <= w < upper)
-            histogram_data.append(
-                {"range": f"{lower} - {upper}", "count": count, "min": lower}
-            )
-
-        return histogram_data
+        return [
+            {"range": f"{row.min} - {row.max}", "count": int(row.count), "min": int(row.min)}
+            for row in rows
+        ]
