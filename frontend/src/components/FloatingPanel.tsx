@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import apiClient from "../lib/api";
 import { Calendar } from "./ui/calendar";
 import { format } from "date-fns";
-import { Search, CalendarIcon, ChevronDown, Navigation, X, Loader2 } from "lucide-react";
+import { Search, CalendarIcon, ChevronDown, Navigation, X, Loader2, MapPin } from "lucide-react";
 import type { LatLngTuple } from "leaflet";
 
 
@@ -21,8 +21,11 @@ function useAddressSearch() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<NominatimResult[]>([]);
   const [loading, setLoading] = useState(false);
+  // When true, the next query change skips the search (used after selection)
+  const suppressRef = useRef(false);
 
   useEffect(() => {
+    if (suppressRef.current) { suppressRef.current = false; return; }
     const timer = setTimeout(async () => {
       if (query.length < 3) { setResults([]); return; }
       setLoading(true);
@@ -54,10 +57,23 @@ function useAddressSearch() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  return { query, setQuery, results, setResults, loading };
+  // Sets query and suppresses the next search trigger (call after user selects a result)
+  function setQuerySelected(q: string) {
+    suppressRef.current = true;
+    setQuery(q);
+  }
+
+  return { query, setQuery, setQuerySelected, results, setResults, loading };
 }
 
 // ─── Route search input sub-component ────────────────────────────────────────
+
+interface PinnedResult {
+  id: string;
+  name: string;
+  lat: number;
+  lon: number;
+}
 
 interface RouteSearchInputProps {
   placeholder: string;
@@ -67,6 +83,9 @@ interface RouteSearchInputProps {
   loading: boolean;
   onSelect: (result: NominatimResult) => void;
   dotColor: string;
+  // Optional pinned results (e.g. stations) shown at the top, filtered by current query
+  pinnedResults?: PinnedResult[];
+  onSelectPinned?: (result: PinnedResult) => void;
 }
 
 function RouteSearchInput({
@@ -77,7 +96,11 @@ function RouteSearchInput({
   loading,
   onSelect,
   dotColor,
+  pinnedResults = [],
+  onSelectPinned,
 }: RouteSearchInputProps) {
+  const [showPinnedMenu, setShowPinnedMenu] = useState(false);
+
   return (
     <div className="relative">
       <div className="flex items-center gap-2">
@@ -86,21 +109,37 @@ function RouteSearchInput({
           <input
             type="text"
             value={value}
-            onChange={(e) => onChange(e.target.value)}
+            onChange={(e) => { onChange(e.target.value); setShowPinnedMenu(false); }}
             placeholder={placeholder}
             className="w-full pl-3 pr-7 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          {/* Right-side indicator: stations button or loading spinner */}
+          {pinnedResults.length > 0 && !loading && (
+            <button
+              type="button"
+              // onMouseDown + preventDefault keeps input focused and avoids blur race condition
+              onMouseDown={(e) => { e.preventDefault(); setShowPinnedMenu((v) => !v); }}
+              title="Vybrat ze stanic"
+              className={`absolute right-2 top-1/2 -translate-y-1/2 transition-colors ${
+                showPinnedMenu ? "text-blue-500" : "text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              <MapPin className="w-3.5 h-3.5" />
+            </button>
+          )}
           {loading && (
             <span className="absolute right-2.5 top-2 text-gray-400 text-xs">…</span>
           )}
         </div>
       </div>
-      {results.length > 0 && (
+
+      {/* Nominatim address results */}
+      {!showPinnedMenu && results.length > 0 && (
         <ul className="absolute left-5 right-0 z-50 bg-white border border-gray-100 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
           {results.map((r) => (
             <li
               key={r.id}
-              // onMouseDown prevents input blur from closing the list before click fires
+              // onMouseDown prevents input blur from firing before the click registers
               onMouseDown={() => onSelect(r)}
               className="px-3 py-1.5 hover:bg-blue-50 cursor-pointer text-xs text-gray-700 border-b border-gray-50 last:border-0"
             >
@@ -108,6 +147,22 @@ function RouteSearchInput({
               <span className="text-gray-400 ml-1">
                 {r.name.split(",").slice(1, 3).join(",")}
               </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {/* Pinned stations dropdown — opened explicitly via the MapPin button */}
+      {showPinnedMenu && pinnedResults.length > 0 && (
+        <ul className="absolute left-5 right-0 z-50 bg-white border border-gray-100 rounded-lg shadow-xl mt-1 max-h-48 overflow-y-auto">
+          {pinnedResults.map((p) => (
+            <li
+              key={`pinned-${p.id}`}
+              onMouseDown={() => { onSelectPinned?.(p); setShowPinnedMenu(false); }}
+              className="flex items-center gap-2 px-3 py-1.5 hover:bg-blue-50 cursor-pointer text-xs text-gray-700 border-b border-gray-50 last:border-0"
+            >
+              <MapPin className="w-3 h-3 text-gray-400 shrink-0" />
+              <span className="font-medium">{p.name}</span>
             </li>
           ))}
         </ul>
@@ -344,14 +399,14 @@ export default function FloatingPanel({
 
   function handleStartSelect(result: NominatimResult) {
     startSetByInput.current = true;
-    startSearch.setQuery(result.name.split(",")[0].trim());
+    startSearch.setQuerySelected(result.name.split(",")[0].trim());
     startSearch.setResults([]);
     onSetRouteStart(result.lat, result.lon);
   }
 
   function handleEndSelect(result: NominatimResult) {
     endSetByInput.current = true;
-    endSearch.setQuery(result.name.split(",")[0].trim());
+    endSearch.setQuerySelected(result.name.split(",")[0].trim());
     endSearch.setResults([]);
     onSetRouteEnd(result.lat, result.lon);
   }
@@ -523,7 +578,7 @@ export default function FloatingPanel({
       <div className="mt-4 pt-4 border-t border-gray-100">
         <div className="flex items-center justify-between mb-2">
           <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
-            Trasování
+            Navigace
           </label>
           {routingMode && (
             <button
@@ -545,12 +600,12 @@ export default function FloatingPanel({
           }`}
         >
           <Navigation className="w-4 h-4" />
-          {routingMode ? "Trasování aktivní" : "Hledat trasu"}
+          {routingMode ? "Navigace aktivní" : "Hledat trasu"}
         </button>
 
         {routingMode && (
           <div className="mt-3 space-y-2">
-            {/* Start address search */}
+            {/* Start — address search with stations pinned at top of dropdown */}
             <RouteSearchInput
               placeholder="Odkud…"
               value={startSearch.query}
@@ -559,6 +614,13 @@ export default function FloatingPanel({
               loading={startSearch.loading}
               onSelect={handleStartSelect}
               dotColor="bg-green-500"
+              pinnedResults={stations}
+              onSelectPinned={(s) => {
+                startSetByInput.current = true;
+                startSearch.setQuerySelected(s.name);
+                startSearch.setResults([]);
+                onSetRouteStart(s.lat, s.lon);
+              }}
             />
 
             {/* End address search */}
@@ -571,29 +633,6 @@ export default function FloatingPanel({
               onSelect={handleEndSelect}
               dotColor="bg-red-500"
             />
-
-            {/* Station as route start */}
-            {stations.length > 0 && (
-              <div className="relative">
-                <select
-                  defaultValue=""
-                  onChange={(e) => {
-                    const station = stations.find((s) => s.id === e.target.value);
-                    if (station) {
-                      onSetRouteStart(station.lat, station.lon);
-                      e.target.value = "";
-                    }
-                  }}
-                  className="w-full appearance-none border border-gray-200 rounded-lg pl-3 pr-8 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-700 truncate"
-                >
-                  <option value="" disabled>Start ze stanice…</option>
-                  {stations.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-2.5 top-2.5 w-4 h-4 text-gray-400 pointer-events-none" />
-              </div>
-            )}
 
             {/* Status */}
             <div className="text-xs text-gray-500 space-y-1 pt-1">

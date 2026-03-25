@@ -40,7 +40,7 @@ async def get_segments_in_bbox(
             ON ss.segment_id = rs.id
             AND ss.stat_date = {date_filter}
         WHERE rs.geom && ST_MakeEnvelope(:min_lon, :min_lat, :max_lon, :max_lat, 4326)
-        LIMIT 5000
+        LIMIT 15000
     """)
 
     params = {
