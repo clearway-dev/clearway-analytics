@@ -1,73 +1,94 @@
-from sqlalchemy.orm import Session
-from sqlalchemy import func
-from app.models import CleanedMeasurement
 from datetime import date
-from sklearn.cluster import DBSCAN
+from typing import Optional
+
 import numpy as np
+from sklearn.cluster import DBSCAN
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.models import CleanedMeasurement
+
 
 class MLService:
     def __init__(self, db: Session):
         self.db = db
 
-    def detect_obstacles(self, target_date: date):
+    def detect_obstacles(
+        self,
+        target_date: date,
+        min_lon: Optional[float] = None,
+        min_lat: Optional[float] = None,
+        max_lon: Optional[float] = None,
+        max_lat: Optional[float] = None,
+    ):
         """
-        Detects clusters of narrow width measurements using DBSCAN algorithm.
-        Returns a list of obstacle centroids.
+        Detects clusters of narrow width measurements using DBSCAN.
+        Returns a list of obstacle centroids with severity, cluster_size, and avg_width.
         """
-        # 1. Fetch data: Points with width < 300cm for the given date
-        # We need to filter by date. Since CleanedMeasurement has 'created_at' (DateTime),
-        # we cast it to Date.
+        # Fetch coordinates and width for all narrow measurements on the given date
         query = self.db.query(
             func.ST_Y(CleanedMeasurement.geom).label("lat"),
-            func.ST_X(CleanedMeasurement.geom).label("lon")
+            func.ST_X(CleanedMeasurement.geom).label("lon"),
+            CleanedMeasurement.cleaned_width,
         ).filter(
             func.date(CleanedMeasurement.created_at) == target_date,
-            CleanedMeasurement.cleaned_width < 300.0
+            CleanedMeasurement.cleaned_width < 300.0,
         )
-        
+
+        # Apply optional bounding box filter to reduce data volume
+        if all(v is not None for v in [min_lon, min_lat, max_lon, max_lat]):
+            query = query.filter(
+                func.ST_Within(
+                    CleanedMeasurement.geom,
+                    func.ST_MakeEnvelope(min_lon, min_lat, max_lon, max_lat, 4326),
+                )
+            )
+
         results = query.all()
-        
-        # 2. Check if enough data points exist
+
         if len(results) < 10:
             return []
 
-        # 3. Prepare data for DBSCAN
-        # Convert to radians for Haversine metric
         coords = np.array([(r.lat, r.lon) for r in results])
-        coords_rad = np.radians(coords)
+        widths = np.array([r.cleaned_width for r in results])
 
-        # 4. Run DBSCAN
-        # eps = distance in radians. 5 meters / Earth Radius in meters
-        EARTH_RADIUS_METERS = 6371000.0
-        EPSILON = 5.0 / EARTH_RADIUS_METERS
-        MIN_SAMPLES = 5
+        # eps ≈ 10 metres converted to degrees (1 degree ≈ 111 320 m)
+        EPSILON = 10.0 / 111320.0
+        MIN_SAMPLES = 4
 
-        dbscan = DBSCAN(eps=EPSILON, min_samples=MIN_SAMPLES, metric='haversine', algorithm='ball_tree')
-        dbscan.fit(coords_rad)
+        dbscan = DBSCAN(eps=EPSILON, min_samples=MIN_SAMPLES, metric="euclidean")
+        dbscan.fit(coords)
 
-        # 5. Process clusters
         labels = dbscan.labels_
-        unique_labels = set(labels)
         obstacles = []
 
-        for label in unique_labels:
+        for label in set(labels):
             if label == -1:
-                # Noise points
+                # Skip noise points
                 continue
 
-            # Get points belonging to this cluster
-            cluster_mask = (labels == label)
-            cluster_points = coords[cluster_mask] # Use original degrees coords for centroid calculation
-            
-            # Calculate centroid
+            cluster_mask = labels == label
+            cluster_points = coords[cluster_mask]
+            cluster_widths = widths[cluster_mask]
+
             centroid = np.mean(cluster_points, axis=0)
-            cluster_size = len(cluster_points)
+            avg_width_cm = float(np.mean(cluster_widths))
+            avg_width_m = avg_width_cm / 100.0
+
+            # Severity based on average cluster width in metres
+            if avg_width_m < 2.0:
+                severity = "critical"
+            elif avg_width_m <= 2.5:
+                severity = "high"
+            else:
+                severity = "medium"
 
             obstacles.append({
-                "lat": centroid[0],
-                "lon": centroid[1],
-                "severity": "critical", # All < 300cm are considered critical here
-                "cluster_size": int(cluster_size)
+                "lat": float(centroid[0]),
+                "lon": float(centroid[1]),
+                "severity": severity,
+                "cluster_size": int(len(cluster_points)),
+                "avg_width": round(avg_width_m, 2),
             })
 
         return obstacles

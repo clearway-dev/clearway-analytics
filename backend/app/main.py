@@ -420,14 +420,19 @@ async def export_segments(
 @app.get("/api/analytics/obstacles", dependencies=[Depends(get_current_active_user)])
 async def get_obstacles(
     target_date: date = date.today(),
+    min_lon: Optional[float] = None,
+    min_lat: Optional[float] = None,
+    max_lon: Optional[float] = None,
+    max_lat: Optional[float] = None,
     db: Session = Depends(get_db)
 ):
     """
     Detects physical obstacles using DBSCAN clustering on narrow measurements.
     Returns GeoJSON FeatureCollection of obstacle centroids.
+    Optionally accepts a bounding box (min_lon, min_lat, max_lon, max_lat) to limit the search area.
     """
     ml_service = MLService(db)
-    obstacles = ml_service.detect_obstacles(target_date)
+    obstacles = ml_service.detect_obstacles(target_date, min_lon, min_lat, max_lon, max_lat)
 
     features = []
     for obs in obstacles:
@@ -435,11 +440,12 @@ async def get_obstacles(
             "type": "Feature",
             "geometry": {
                 "type": "Point",
-                "coordinates": [obs["lon"], obs["lat"]] # GeoJSON is [lon, lat]
+                "coordinates": [obs["lon"], obs["lat"]]  # GeoJSON is [lon, lat]
             },
             "properties": {
                 "severity": obs["severity"],
-                "cluster_size": obs["cluster_size"]
+                "cluster_size": obs["cluster_size"],
+                "avg_width": obs["avg_width"],
             }
         })
 

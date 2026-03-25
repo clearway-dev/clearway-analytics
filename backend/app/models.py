@@ -69,7 +69,7 @@ class CleanedMeasurement(Base):
     __tablename__ = "cleaned_measurements"
 
     id = Column(BigInteger, primary_key=True, index=True)
-    raw_measurement_id = Column(BigInteger, nullable=True)
+    raw_measurement_id = Column(BigInteger, nullable=False)
     
     cleaned_width = Column(Float, nullable=False)
     quality_score = Column(Float)

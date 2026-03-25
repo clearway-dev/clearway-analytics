@@ -27,8 +27,8 @@ export default function Layout() {
       <aside className="w-64 bg-white border-r border-gray-200 flex flex-col flex-none z-20">
         {/* Logo Area */}
         <div className="h-16 flex items-center px-6 border-b border-gray-100">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center mr-3 shadow-sm">
-            <Map className="text-white h-5 w-5" />
+          <div className="w-8 h-8 mr-3 flex-none">
+            <img src="/clearway.png" alt="ClearWay" className="w-full h-full object-cover" />
           </div>
           <span className="text-lg font-bold text-gray-900 tracking-tight">ClearWay</span>
         </div>
