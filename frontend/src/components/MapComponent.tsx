@@ -20,6 +20,7 @@ export interface SegmentData {
   min_width: number | null;
   measurements_count: number | null;
   status: "ok" | "narrow" | "no_data";
+  center: LatLngTuple;
 }
 
 interface SegmentProperties {
@@ -179,6 +180,11 @@ export default function MapComponent({
         const avg = p.avg_width;
         const status =
           avg == null ? "no_data" : avg >= vehicleWidth ? "ok" : "narrow";
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const leafletCenter = (layer as any).getBounds?.().getCenter();
+        const center: LatLngTuple = leafletCenter
+          ? [leafletCenter.lat, leafletCenter.lng]
+          : [0, 0];
         onSegmentSelect({
           segment_id: feature.id as string,
           name: p.name ?? "Unknown Road",
@@ -186,6 +192,7 @@ export default function MapComponent({
           min_width: p.min_width,
           measurements_count: p.measurements_count,
           status,
+          center,
         });
       },
     });

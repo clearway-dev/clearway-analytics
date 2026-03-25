@@ -1,4 +1,4 @@
-import BottomSheet from "../components/BottomSheet";
+import SegmentPanel from "../components/SegmentPanel";
 import FloatingPanel from "../components/FloatingPanel";
 import MapComponent, { type SegmentData } from "../components/MapComponent";
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -167,7 +167,12 @@ export default function MapPage() {
       {/* Map layer */}
       <div className="absolute inset-0 z-0">
         <MapComponent
-          onSegmentSelect={(data) => { if (!routingMode) setSelectedSegment(data); }}
+          onSegmentSelect={(data) => {
+            if (!routingMode) {
+              setSelectedSegment(data);
+              if (data) setFlyToTarget(data.center);
+            }
+          }}
           vehicleWidth={vehicleWidth}
           selectedDate={mapDate}
           flyToTarget={flyToTarget}
@@ -215,8 +220,8 @@ export default function MapPage() {
         routeDistance={routeDistance}
       />
 
-      {/* Segment detail bottom sheet */}
-      <BottomSheet
+      {/* Segment detail panel */}
+      <SegmentPanel
         data={selectedSegment}
         onClose={() => setSelectedSegment(null)}
       />
