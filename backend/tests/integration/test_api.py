@@ -7,7 +7,7 @@ from datetime import date, datetime
 import pytest
 from geoalchemy2 import WKTElement
 
-from app.models import CleanedMeasurement, Sensor, Vehicle, Session, RawMeasurement
+from app.models import Batch, CleanedMeasurement, Sensor, Vehicle, Session, RawMeasurement
 
 
 # ---------------------------------------------------------------------------
@@ -100,12 +100,16 @@ def obstacle_measurements(db):
     db.add(session)
     db.flush()  # populate session.id
 
+    batch = Batch(session_id=session.id, status="completed")
+    db.add(batch)
+    db.flush()  # populate batch.id
+
     raw_records = []
     for i in range(_CLUSTER_SIZE):
         lat = _BASE_LAT + i * 0.000001
         lon = _BASE_LON + i * 0.000001
         raw = RawMeasurement(
-            session_id=session.id,
+            batch_id=batch.id,
             measured_at=_TEST_DATETIME,
             latitude=lat,
             longitude=lon,
@@ -135,7 +139,7 @@ def obstacle_measurements(db):
 
     yield
 
-    # ON DELETE CASCADE propagates: sensor/vehicle → session → raw_measurements → cleaned_measurements
+    # ON DELETE CASCADE propagates: sensor/vehicle → session → batches → raw_measurements → cleaned_measurements
     db.delete(sensor)
     db.delete(vehicle)
     db.commit()

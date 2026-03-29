@@ -9,7 +9,7 @@ from geoalchemy2.elements import WKTElement
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from app.database import SessionLocal
-from app.models import CleanedMeasurement, RawMeasurement, Session, Sensor, Vehicle
+from app.models import Batch, CleanedMeasurement, RawMeasurement, Session, Sensor, Vehicle
 
 def generate_random_point_in_radius(center_lat, center_lon, radius_meters):
     """
@@ -73,13 +73,22 @@ def seed_obstacles():
         )
         db.add(dummy_session)
         db.flush()
-        session_id = dummy_session.id
-        print(f"Created dummy Session with ID: {session_id}")
+        print(f"Created dummy Session with ID: {dummy_session.id}")
+
+        # 2. Create a Batch for the session
+        print("Creating dummy Batch...")
+        dummy_batch = Batch(
+            session_id=dummy_session.id,
+            status="completed"
+        )
+        db.add(dummy_batch)
+        db.flush()
+        print(f"Created dummy Batch with ID: {dummy_batch.id}")
 
         # Create a dummy RawMeasurement to satisfy FK/NotNull constraint
         print("Creating dummy RawMeasurement...")
         dummy_raw = RawMeasurement(
-            session_id=session_id,
+            batch_id=dummy_batch.id,
             measured_at=datetime.datetime.now(),
             latitude=base_lat,
             longitude=base_lon,

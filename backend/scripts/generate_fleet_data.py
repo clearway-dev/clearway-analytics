@@ -52,7 +52,7 @@ if not os.getenv("DATABASE_URL"):
 DATABASE_URL = os.environ["DATABASE_URL"]
 
 from app.database import SessionLocal
-from app.models import Sensor, Vehicle, Session, RawMeasurement
+from app.models import Batch, Sensor, Vehicle, Session, RawMeasurement
 from sqlalchemy import text as sa_text
 
 
@@ -166,7 +166,8 @@ def get_or_create_anchor_raw_id(db) -> int:
     existing = db.execute(sa_text("""
         SELECT rm.id
         FROM raw_measurements rm
-        JOIN sessions s ON rm.session_id = s.id
+        JOIN batches b ON rm.batch_id = b.id
+        JOIN sessions s ON b.session_id = s.id
         JOIN sensors sen ON s.sensor_id = sen.id
         WHERE sen.description = 'Simulator Anchor'
         LIMIT 1
@@ -177,7 +178,7 @@ def get_or_create_anchor_raw_id(db) -> int:
         logging.info(f"  Reusing existing anchor raw_measurement id={anchor_id}")
         return anchor_id
 
-    logging.info("  Creating Simulator Anchor chain (Sensor → Vehicle → Session → RawMeasurement)...")
+    logging.info("  Creating Simulator Anchor chain (Sensor → Vehicle → Session → Batch → RawMeasurement)...")
 
     sensor = Sensor(description="Simulator Anchor", is_active=False)
     db.add(sensor)
@@ -191,8 +192,12 @@ def get_or_create_anchor_raw_id(db) -> int:
     db.add(session)
     db.flush()
 
+    batch = Batch(session_id=session.id, status="completed")
+    db.add(batch)
+    db.flush()
+
     raw = RawMeasurement(
-        session_id=session.id,
+        batch_id=batch.id,
         measured_at=datetime.datetime.utcnow(),
         latitude=49.7477,
         longitude=13.3776,
