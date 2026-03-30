@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import apiClient from "../lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
-import { Activity, Map, Ruler, AlertTriangle, ArrowRight } from "lucide-react";
+import { Activity, Map, Ruler, AlertTriangle, ArrowRight, Loader2 } from "lucide-react";
 import CoverageMap from "../components/CoverageMap";
 
 interface Anomaly {
@@ -19,10 +19,16 @@ interface Anomaly {
 
 interface DashboardStats {
   total_segments: number;
-  total_measurements: number;
   total_length_km: number;
+  // All-time
+  total_measurements: number;
   measured_segments_count: number;
   coverage_percentage: number;
+  // Date-specific
+  measurements_on_date: number;
+  measured_segments_on_date: number;
+  coverage_on_date: number;
+  // Date + width sensitive
   critical_segments_count: number;
   anomalies: Anomaly[];
 }
@@ -34,6 +40,7 @@ export default function AdminPage() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [vehicleWidth, setVehicleWidth] = useState<number>(250);
   const [appliedWidth, setAppliedWidth] = useState<number>(250);
+  const [statsMode, setStatsMode] = useState<"alltime" | "date">("alltime");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -78,14 +85,12 @@ export default function AdminPage() {
         <h2 className="text-2xl font-bold tracking-tight text-gray-900">Přehled</h2>
       </div>
 
-      <div className="flex-1 p-6 pt-2 overflow-y-auto min-h-0">
-        <div className="flex flex-col gap-4 h-full">
+      {/* MAIN: two columns filling remaining height */}
+      <div className="flex flex-1 gap-4 px-6 pb-6 min-h-0">
 
-          {/* TOP ROW: left 1/3 (controls + KPIs) | right 2/3 (map) */}
-          <div className="flex gap-4 flex-1 min-h-0">
-
-            {/* LEFT COLUMN */}
-            <div className="flex flex-col gap-4 w-1/3 min-w-0">
+        {/* LEFT COLUMN — controls + KPIs + anomaly table */}
+        <div className="flex flex-col gap-4 w-1/3 min-w-0 overflow-y-auto">
+          <div className="flex flex-col gap-4">
 
               {/* CONTROLS */}
               <Card>
@@ -120,6 +125,25 @@ export default function AdminPage() {
                       className="w-full accent-blue-500"
                     />
                   </div>
+
+                  {/* Mode toggle */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-500">Zobrazit měření a pokrytí</span>
+                    <div className="flex rounded-md border border-gray-200 overflow-hidden text-xs font-medium">
+                      <button
+                        onClick={() => setStatsMode("alltime")}
+                        className={`flex-1 py-1.5 transition-colors ${statsMode === "alltime" ? "bg-blue-500 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                      >
+                        Celkem
+                      </button>
+                      <button
+                        onClick={() => setStatsMode("date")}
+                        className={`flex-1 py-1.5 transition-colors ${statsMode === "date" ? "bg-blue-500 text-white" : "bg-white text-gray-600 hover:bg-gray-50"}`}
+                      >
+                        Tento den
+                      </button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 
@@ -145,11 +169,13 @@ export default function AdminPage() {
                   <CardContent className="p-4 pt-0">
                     <div className="flex items-baseline gap-1.5 flex-wrap">
                       <span className="text-lg font-bold text-gray-900 leading-tight">
-                        {loading ? "—" : `${stats?.coverage_percentage} %`}
+                        {loading ? "—" : `${statsMode === "alltime" ? stats?.coverage_percentage : stats?.coverage_on_date} %`}
                       </span>
                       {!loading && stats && (
                         <span className="text-xs text-gray-400">
-                          {stats.measured_segments_count.toLocaleString()} / {stats.total_segments.toLocaleString()}
+                          {statsMode === "alltime"
+                            ? `${stats.measured_segments_count.toLocaleString()} / ${stats.total_segments.toLocaleString()}`
+                            : `${stats.measured_segments_on_date.toLocaleString()} / ${stats.total_segments.toLocaleString()}`}
                         </span>
                       )}
                     </div>
@@ -181,77 +207,79 @@ export default function AdminPage() {
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
                     <div className="text-lg font-bold text-gray-900 leading-tight">
-                      {loading ? "—" : stats?.total_measurements.toLocaleString()}
+                      {loading ? "—" : (statsMode === "alltime" ? stats?.total_measurements : stats?.measurements_on_date)?.toLocaleString()}
                     </div>
                   </CardContent>
                 </Card>
               </div>
-            </div>
 
-            {/* RIGHT COLUMN — CoverageMap */}
-            <div className="flex-1 min-w-0 min-h-0">
-              <Card className="h-full flex flex-col overflow-hidden">
-                <CardHeader className="p-4 pb-2 flex-none">
-                  <CardTitle className="text-sm">Pokrytí měřením</CardTitle>
-                </CardHeader>
-                <CardContent className="p-0 flex-1 relative">
-                  <div className="absolute inset-0">
-                    <CoverageMap />
+            {/* ANOMALY TABLE */}
+            <Card className="pb-4">
+              <CardHeader className="p-4 pb-2">
+                <CardTitle className="text-sm">Nejužší úseky</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                {loading ? (
+                  <div className="flex items-center justify-center gap-2 p-6 text-sm text-gray-500">
+                    <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
+                    Načítám…
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </div>
-
-          {/* ANOMALY TABLE */}
-          <Card className="flex-none pb-4">
-            <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-sm">Nejužší úseky</CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              {loading ? (
-                <div className="p-6 text-center text-sm text-gray-400">Načítám…</div>
-              ) : !stats || stats.anomalies.length === 0 ? (
-                <div className="p-6 text-center text-sm text-gray-400">Žádná data pro vybraný den.</div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[40%]">Název ulice</TableHead>
-                      <TableHead>Min. šířka</TableHead>
-                      <TableHead>Prům. šířka</TableHead>
-                      <TableHead className="text-right">Měření</TableHead>
-                      <TableHead className="w-[50px]"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {stats.anomalies.map((anomaly) => (
-                      <TableRow key={anomaly.id}>
-                        <TableCell className="font-medium">{anomaly.name}</TableCell>
-                        <TableCell className={anomaly.min_width < appliedWidth ? "text-red-500 font-bold" : ""}>
-                          {(anomaly.min_width / 100).toFixed(2)} m
-                        </TableCell>
-                        <TableCell>{(anomaly.avg_width / 100).toFixed(2)} m</TableCell>
-                        <TableCell className="text-right">{anomaly.measurements_count}</TableCell>
-                        <TableCell>
-                          <button
-                            onClick={() =>
-                              navigate(`/?segmentId=${anomaly.id}&lat=${anomaly.lat}&lon=${anomaly.lon}&date=${anomaly.date}`)
-                            }
-                            className="p-1 hover:bg-gray-100 rounded"
-                          >
-                            <ArrowRight className="h-4 w-4 text-gray-400" />
-                          </button>
-                        </TableCell>
+                ) : !stats || stats.anomalies.length === 0 ? (
+                  <div className="p-6 text-center text-sm text-gray-400">Žádná data pro vybraný den.</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Název ulice</TableHead>
+                        <TableHead>Min. šířka</TableHead>
+                        <TableHead>Prům. šířka</TableHead>
+                        <TableHead className="text-right">Měření</TableHead>
+                        <TableHead className="w-[50px]"></TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+                    </TableHeader>
+                    <TableBody>
+                      {stats.anomalies.map((anomaly) => (
+                        <TableRow key={anomaly.id}>
+                          <TableCell className="font-medium">{anomaly.name}</TableCell>
+                          <TableCell className={anomaly.min_width < appliedWidth ? "text-red-500 font-bold" : ""}>
+                            {(anomaly.min_width / 100).toFixed(2)} m
+                          </TableCell>
+                          <TableCell>{(anomaly.avg_width / 100).toFixed(2)} m</TableCell>
+                          <TableCell className="text-right">{anomaly.measurements_count}</TableCell>
+                          <TableCell>
+                            <button
+                              onClick={() =>
+                                navigate(`/?segmentId=${anomaly.id}&lat=${anomaly.lat}&lon=${anomaly.lon}&date=${anomaly.date}`)
+                              }
+                              className="p-1 hover:bg-gray-100 rounded"
+                            >
+                              <ArrowRight className="h-4 w-4 text-gray-400" />
+                            </button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN — CoverageMap, fills full height */}
+        <div className="flex-1 min-w-0 min-h-0">
+          <Card className="h-full flex flex-col overflow-hidden">
+            <CardHeader className="p-4 pb-2 flex-none">
+              <CardTitle className="text-sm">Pokrytí měřením</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 flex-1 relative">
+              <div className="absolute inset-0">
+                <CoverageMap />
+              </div>
             </CardContent>
           </Card>
-
         </div>
+
       </div>
     </div>
   );

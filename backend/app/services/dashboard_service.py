@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, distinct
 from geoalchemy2 import Geography
-from app.models import RoadSegment, CleanedMeasurement, SegmentStatistics
+from app.models import RoadSegment, SegmentStatistics
 import json
 
 
@@ -112,9 +112,12 @@ class DashboardService:
     def get_global_stats(self, target_date=None, vehicle_width_cm: float = 300.0):
         """
         Calculates global KPI statistics for the dashboard.
+        Returns both all-time and date-specific values for measurements and coverage.
         """
         total_segments = self.db.query(func.count(RoadSegment.id)).scalar() or 0
-        total_measurements = self.db.query(func.count(CleanedMeasurement.id)).scalar() or 0
+        total_measurements = self.db.query(
+            func.sum(SegmentStatistics.measurements_count)
+        ).scalar() or 0
 
         total_length_meters = self.db.query(
             func.sum(func.ST_Length(cast(RoadSegment.geom, Geography)))
@@ -129,14 +132,38 @@ class DashboardService:
             measured_segments_count / total_segments * 100, 1
         ) if total_segments > 0 else 0.0
 
+        # Date-specific measurements and coverage
+        stat_date = target_date or self._get_latest_date()
+        measurements_on_date = 0
+        measured_segments_on_date = 0
+        coverage_on_date = 0.0
+        if stat_date:
+            measurements_on_date = self.db.query(
+                func.sum(SegmentStatistics.measurements_count)
+            ).filter(SegmentStatistics.stat_date == stat_date).scalar() or 0
+
+            measured_segments_on_date = self.db.query(
+                func.count(distinct(SegmentStatistics.segment_id))
+            ).filter(SegmentStatistics.stat_date == stat_date).scalar() or 0
+
+            coverage_on_date = round(
+                measured_segments_on_date / total_segments * 100, 1
+            ) if total_segments > 0 else 0.0
+
         critical_segments_count = self.get_critical_count(target_date, vehicle_width_cm)
 
         return {
             "total_segments": total_segments,
-            "total_measurements": total_measurements,
             "total_length_km": total_length_km,
+            # All-time
+            "total_measurements": total_measurements,
             "measured_segments_count": measured_segments_count,
             "coverage_percentage": coverage_percentage,
+            # Date-specific
+            "measurements_on_date": measurements_on_date,
+            "measured_segments_on_date": measured_segments_on_date,
+            "coverage_on_date": coverage_on_date,
+            # Date + width sensitive
             "critical_segments_count": critical_segments_count,
-            "anomalies": self.get_critical_segments(target_date, vehicle_width_cm),
+            "anomalies": self.get_critical_segments(target_date, vehicle_width_cm, limit=10),
         }
