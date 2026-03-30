@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Pencil, Trash2, Plus, X, ShieldCheck, User as UserIcon } from "lucide-react";
+import { Pencil, Trash2, Plus, X, ShieldCheck, User as UserIcon, Loader2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import {
   Table, TableHeader, TableBody, TableRow,
@@ -133,7 +133,12 @@ export default function UsersPage() {
   }
 
   if (loading) {
-    return <div className="flex justify-center items-center h-full text-gray-500">Načítám…</div>;
+    return (
+      <div className="flex items-center justify-center gap-2 h-full text-sm text-gray-500">
+        <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
+        Načítám…
+      </div>
+    );
   }
   if (pageError) {
     return <div className="p-8 text-red-500">{pageError}</div>;
@@ -155,7 +160,7 @@ export default function UsersPage() {
       <div className="flex-1 p-6 pt-2 overflow-auto">
         <Card>
           <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm text-gray-500 font-normal">{users.length} uživatelů</CardTitle>
+            <p className="text-xs text-gray-400">{users.length} uživatelů</p>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -192,7 +197,7 @@ export default function UsersPage() {
                     </TableCell>
                     <TableCell className="text-sm text-gray-600">{u.email}</TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
                         u.role === "admin"
                           ? "bg-blue-50 text-blue-700"
                           : "bg-gray-100 text-gray-600"
@@ -201,7 +206,7 @@ export default function UsersPage() {
                       </span>
                     </TableCell>
                     <TableCell>
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium ${
                         u.is_active
                           ? "bg-green-50 text-green-700"
                           : "bg-red-50 text-red-600"
@@ -213,7 +218,7 @@ export default function UsersPage() {
                       <div className="flex items-center gap-1">
                         <button
                           onClick={() => openEdit(u)}
-                          className="p-1.5 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-800"
+                          className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800"
                           title="Upravit"
                         >
                           <Pencil className="w-4 h-4" />
@@ -221,7 +226,7 @@ export default function UsersPage() {
                         <button
                           onClick={() => setDeleteId(u.id)}
                           disabled={u.id === currentUser?.id}
-                          className="p-1.5 hover:bg-red-50 rounded text-gray-500 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                          className="p-1.5 hover:bg-red-50 rounded-lg text-gray-500 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
                           title={u.id === currentUser?.id ? "Nelze smazat vlastní účet" : "Smazat"}
                         >
                           <Trash2 className="w-4 h-4" />
@@ -245,7 +250,7 @@ export default function UsersPage() {
               <h3 className="text-lg font-semibold text-gray-900">
                 {editingId ? "Upravit uživatele" : "Nový uživatel"}
               </h3>
-              <button onClick={closeModal} className="p-1 hover:bg-gray-100 rounded text-gray-500">
+              <button onClick={closeModal} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -259,7 +264,7 @@ export default function UsersPage() {
                   type="email"
                   value={form.email}
                   onChange={(e) => handleField("email", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="uzivatel@hzs.cz"
                 />
               </div>
@@ -270,7 +275,7 @@ export default function UsersPage() {
                   type="text"
                   value={form.full_name}
                   onChange={(e) => handleField("full_name", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Jan Novák"
                 />
               </div>
@@ -283,7 +288,7 @@ export default function UsersPage() {
                   type="password"
                   value={form.password}
                   onChange={(e) => handleField("password", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder={editingId ? "Nové heslo (volitelné)" : "Heslo"}
                 />
               </div>
@@ -294,7 +299,7 @@ export default function UsersPage() {
                   <select
                     value={form.role}
                     onChange={(e) => handleField("role", e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
                     <option value="dispatcher">Dispečer</option>
                     <option value="admin">Admin</option>
@@ -305,7 +310,7 @@ export default function UsersPage() {
                   <select
                     value={form.is_active ? "1" : "0"}
                     onChange={(e) => handleField("is_active", e.target.value === "1")}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
                     <option value="1">Aktivní</option>
                     <option value="0">Deaktivován</option>

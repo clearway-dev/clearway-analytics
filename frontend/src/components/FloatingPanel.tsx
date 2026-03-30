@@ -472,15 +472,21 @@ export default function FloatingPanel({
         </div>
 
         <div className="flex items-center gap-2">
-          <input
-            type="range"
-            min="150"
-            max="500"
-            step="1"
-            value={vehicleWidth}
-            onChange={handleSliderChange}
-            className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
-          />
+          <div className="flex-1 min-w-0">
+            <input
+              type="range"
+              min="150"
+              max="500"
+              step="1"
+              value={vehicleWidth}
+              onChange={handleSliderChange}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+            />
+            <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+              <span>150 cm</span>
+              <span>500 cm</span>
+            </div>
+          </div>
           <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden shrink-0">
             <input
               type="number"
@@ -497,10 +503,6 @@ export default function FloatingPanel({
               cm
             </span>
           </div>
-        </div>
-        <div className="flex justify-between text-[10px] text-gray-400 mt-1">
-          <span>150 cm</span>
-          <span>500 cm</span>
         </div>
       </div>
 
