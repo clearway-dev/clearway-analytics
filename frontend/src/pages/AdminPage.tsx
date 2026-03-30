@@ -3,33 +3,8 @@ import { useNavigate } from "react-router-dom";
 import apiClient from "../lib/api";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
-import { Activity, Map, Ruler, BarChart3, ArrowRight } from "lucide-react";
+import { Activity, Map, Ruler, AlertTriangle, ArrowRight } from "lucide-react";
 import CoverageMap from "../components/CoverageMap";
-import {
-  ResponsiveContainer,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  PieChart,
-  Pie,
-  Cell,
-  Legend,
-} from "recharts";
-
-interface ChartData {
-  date: string;
-  count: number;
-  [key: string]: string | number;
-}
-
-interface PieData {
-  name: string;
-  value: number;
-  [key: string]: string | number;
-}
 
 interface Anomaly {
   id: string;
@@ -47,216 +22,198 @@ interface DashboardStats {
   total_measurements: number;
   total_length_km: number;
   measured_segments_count: number;
-  activity_chart: ChartData[];
-  quality_chart: PieData[];
+  coverage_percentage: number;
+  critical_segments_count: number;
   anomalies: Anomaly[];
 }
 
-const COLORS = ["#22c55e", "#ef4444"];
-
 export default function AdminPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [vehicleWidth, setVehicleWidth] = useState<number>(250);
+  const [appliedWidth, setAppliedWidth] = useState<number>(250);
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiClient.get("/api/dashboard/stats")
-      .then((res) => { setStats(res.data); setLoading(false); })
-      .catch(() => { setLoading(false); });
+    apiClient.get("/api/dashboard/available-dates").then((res) => {
+      const dates: string[] = res.data.dates ?? [];
+      setAvailableDates(dates);
+      if (dates.length > 0) setSelectedDate(dates[0]);
+    });
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <span className="text-gray-500">Načítám data přehledu...</span>
-      </div>
-    );
-  }
+  useEffect(() => {
+    const t = setTimeout(() => setAppliedWidth(vehicleWidth), 400);
+    return () => clearTimeout(t);
+  }, [vehicleWidth]);
 
-  if (!stats) {
-    return (
-      <div className="p-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-6">Přehled</h1>
-        <div className="text-red-500">Nepodařilo se načíst data.</div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!selectedDate) return;
+    setLoading(true);
+    const params = new URLSearchParams({
+      target_date: selectedDate,
+      vehicle_width_cm: String(appliedWidth),
+    });
+    apiClient
+      .get(`/api/dashboard/stats?${params}`)
+      .then((res) => setStats(res.data))
+      .catch(() => setStats(null))
+      .finally(() => setLoading(false));
+  }, [selectedDate, appliedWidth]);
+
+  const formatDate = (d: string) =>
+    new Date(d + "T12:00:00").toLocaleDateString("cs-CZ", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+
+  const widthLabel = (vehicleWidth / 100).toFixed(2) + " m";
 
   return (
     <div className="h-full w-full overflow-hidden bg-gray-50/50 flex flex-col">
-      {/* HEADER */}
       <div className="flex-none p-6 pb-2">
         <h2 className="text-2xl font-bold tracking-tight text-gray-900">Přehled</h2>
       </div>
 
-      {/* MAIN CONTENT - SCROLLABLE IF NEEDED BUT COMPACT */}
-      <div className="flex-1 p-6 pt-2 overflow-y-auto">
+      <div className="flex-1 p-6 pt-2 overflow-y-auto min-h-0">
         <div className="flex flex-col gap-4 h-full">
-          
-          {/* TOP SECTION: GRID */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 flex-1 min-h-0">
-            
-            {/* LEFT COLUMN: KPIs + CHARTS (Span 8) */}
-            <div className="lg:col-span-8 flex flex-col gap-4 h-full">
-              
-              {/* 1. KPIs ROW */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 flex-none">
-                {/* Card 1 */}
+
+          {/* TOP ROW: left 1/3 (controls + KPIs) | right 2/3 (map) */}
+          <div className="flex gap-4 flex-1 min-h-0">
+
+            {/* LEFT COLUMN */}
+            <div className="flex flex-col gap-4 w-1/3 min-w-0">
+
+              {/* CONTROLS */}
+              <Card>
+                <CardContent className="p-4 flex flex-col gap-4">
+                  {/* Date selector */}
+                  <div className="flex flex-col gap-1">
+                    <span className="text-xs text-gray-500">Datum dat</span>
+                    <select
+                      value={selectedDate}
+                      onChange={(e) => setSelectedDate(e.target.value)}
+                      className="text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+                    >
+                      {availableDates.map((d) => (
+                        <option key={d} value={d}>{formatDate(d)}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Vehicle width slider */}
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-500">Šířka vozidla</span>
+                      <span className="text-sm font-semibold text-gray-800">{widthLabel}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="150"
+                      max="500"
+                      step="5"
+                      value={vehicleWidth}
+                      onChange={(e) => setVehicleWidth(Number(e.target.value))}
+                      className="w-full accent-blue-500"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* KPI ROW 1 */}
+              <div className="grid grid-cols-2 gap-4">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-                    <CardTitle className="text-xs font-medium text-gray-500">
-                      Délka sítě
-                    </CardTitle>
-                    <Ruler className="h-4 w-4 text-gray-400" />
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-1">
+                    <CardTitle className="text-xs font-medium text-gray-500">Délka sítě</CardTitle>
+                    <Ruler className="h-4 w-4 text-gray-400 shrink-0" />
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <div className="text-xl font-bold text-gray-900">{stats.total_length_km.toLocaleString()} km</div>
+                    <div className="text-lg font-bold text-gray-900 leading-tight">
+                      {loading ? "—" : `${stats?.total_length_km.toLocaleString()} km`}
+                    </div>
                   </CardContent>
                 </Card>
 
-                {/* Card 2 */}
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-                    <CardTitle className="text-xs font-medium text-gray-500">
-                      Měření
-                    </CardTitle>
-                    <Activity className="h-4 w-4 text-gray-400" />
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-1">
+                    <CardTitle className="text-xs font-medium text-gray-500">Pokrytí sítě</CardTitle>
+                    <Map className="h-4 w-4 text-gray-400 shrink-0" />
                   </CardHeader>
                   <CardContent className="p-4 pt-0">
-                    <div className="text-xl font-bold text-gray-900">{stats.total_measurements.toLocaleString()}</div>
-                  </CardContent>
-                </Card>
-
-                {/* Card 3 */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-                    <CardTitle className="text-xs font-medium text-gray-500">
-                      Úseky
-                    </CardTitle>
-                    <BarChart3 className="h-4 w-4 text-gray-400" />
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="text-xl font-bold text-gray-900">{stats.measured_segments_count.toLocaleString()}</div>
-                  </CardContent>
-                </Card>
-
-                {/* Card 4 */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-                    <CardTitle className="text-xs font-medium text-gray-500">
-                      Celkem úseků
-                    </CardTitle>
-                    <Map className="h-4 w-4 text-gray-400" />
-                  </CardHeader>
-                  <CardContent className="p-4 pt-0">
-                    <div className="text-xl font-bold text-gray-900">{stats.total_segments.toLocaleString()}</div>
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className="text-lg font-bold text-gray-900 leading-tight">
+                        {loading ? "—" : `${stats?.coverage_percentage} %`}
+                      </span>
+                      {!loading && stats && (
+                        <span className="text-xs text-gray-400">
+                          {stats.measured_segments_count.toLocaleString()} / {stats.total_segments.toLocaleString()}
+                        </span>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* 2. CHARTS ROW */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1">
-                {/* Activity Chart */}
-                <Card className="flex flex-col h-full">
-                  <CardHeader className="p-4 pb-2 flex-none">
-                    <CardTitle className="text-sm">Aktivita měření (7 dní)</CardTitle>
+              {/* KPI ROW 2 */}
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-1">
+                    <CardTitle className="text-xs font-medium text-gray-500">Kritické úseky</CardTitle>
+                    <AlertTriangle className="h-4 w-4 text-red-400 shrink-0" />
                   </CardHeader>
-                  <CardContent className="p-4 pt-0 flex-1 min-h-[150px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart
-                        data={stats.activity_chart}
-                        margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                          dataKey="date"
-                          tickLine={false}
-                          axisLine={false}
-                          tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { weekday: 'short' })}
-                          style={{ fontSize: '10px', fill: '#888' }}
-                        />
-                        <YAxis
-                           tickLine={false}
-                           axisLine={false}
-                           style={{ fontSize: '10px', fill: '#888' }}
-                        />
-                        <Tooltip />
-                        <Area
-                          type="monotone"
-                          dataKey="count"
-                          stroke="#3b82f6"
-                          fill="#3b82f6"
-                          fillOpacity={0.2}
-                        />
-                      </AreaChart>
-                    </ResponsiveContainer>
+                  <CardContent className="p-4 pt-0">
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <span className={`text-lg font-bold leading-tight ${!loading && (stats?.critical_segments_count ?? 0) > 0 ? "text-red-500" : "text-gray-900"}`}>
+                        {loading ? "—" : stats?.critical_segments_count.toLocaleString()}
+                      </span>
+                      <span className="text-xs text-gray-400">pod {widthLabel}</span>
+                    </div>
                   </CardContent>
                 </Card>
 
-                {/* Pie Chart */}
-                <Card className="flex flex-col h-full">
-                  <CardHeader className="p-4 pb-2 flex-none">
-                    <CardTitle className="text-sm">Stav infrastruktury</CardTitle>
+                <Card>
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-1">
+                    <CardTitle className="text-xs font-medium text-gray-500">Měření celkem</CardTitle>
+                    <Activity className="h-4 w-4 text-gray-400 shrink-0" />
                   </CardHeader>
-                  <CardContent className="p-4 pt-0 flex-1 min-h-[150px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={stats.quality_chart}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={50}
-                          outerRadius={70}
-                          fill="#8884d8"
-                          stroke="none"
-                          paddingAngle={
-                            stats.quality_chart.filter((d) => d.value > 0).length > 1
-                              ? 5
-                              : 0
-                          }
-                          dataKey="value"
-                        >
-                          {stats.quality_chart.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={
-                                entry.name === "Passable" ? COLORS[0] : COLORS[1]
-                              }
-                            />
-                          ))}
-                        </Pie>
-                        <Tooltip />
-                        <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: '12px' }}/>
-                      </PieChart>
-                    </ResponsiveContainer>
+                  <CardContent className="p-4 pt-0">
+                    <div className="text-lg font-bold text-gray-900 leading-tight">
+                      {loading ? "—" : stats?.total_measurements.toLocaleString()}
+                    </div>
                   </CardContent>
                 </Card>
               </div>
-
             </div>
 
-            {/* RIGHT COLUMN: MAP (Span 4) */}
-            <div className="lg:col-span-4 h-full">
+            {/* RIGHT COLUMN — CoverageMap */}
+            <div className="flex-1 min-w-0 min-h-0">
               <Card className="h-full flex flex-col overflow-hidden">
                 <CardHeader className="p-4 pb-2 flex-none">
                   <CardTitle className="text-sm">Pokrytí měřením</CardTitle>
                 </CardHeader>
                 <CardContent className="p-0 flex-1 relative">
-                   <div className="absolute inset-0">
-                      <CoverageMap />
-                   </div>
+                  <div className="absolute inset-0">
+                    <CoverageMap />
+                  </div>
                 </CardContent>
               </Card>
             </div>
           </div>
 
-          {/* BOTTOM SECTION: ANOMALIES TABLE (Full Width) */}
-          <div className="flex-none pb-4">
-            <Card>
-              <CardHeader className="p-4 pb-2">
-                <CardTitle className="text-sm">Datové anomálie (nejužší úseky)</CardTitle>
-              </CardHeader>
-              <CardContent className="p-0">
+          {/* ANOMALY TABLE */}
+          <Card className="flex-none pb-4">
+            <CardHeader className="p-4 pb-2">
+              <CardTitle className="text-sm">Nejužší úseky</CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {loading ? (
+                <div className="p-6 text-center text-sm text-gray-400">Načítám…</div>
+              ) : !stats || stats.anomalies.length === 0 ? (
+                <div className="p-6 text-center text-sm text-gray-400">Žádná data pro vybraný den.</div>
+              ) : (
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -268,10 +225,10 @@ export default function AdminPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {stats.anomalies && stats.anomalies.map((anomaly) => (
+                    {stats.anomalies.map((anomaly) => (
                       <TableRow key={anomaly.id}>
                         <TableCell className="font-medium">{anomaly.name}</TableCell>
-                        <TableCell className={anomaly.min_width < 300 ? "text-red-500 font-bold" : ""}>
+                        <TableCell className={anomaly.min_width < appliedWidth ? "text-red-500 font-bold" : ""}>
                           {(anomaly.min_width / 100).toFixed(2)} m
                         </TableCell>
                         <TableCell>{(anomaly.avg_width / 100).toFixed(2)} m</TableCell>
@@ -279,9 +236,7 @@ export default function AdminPage() {
                         <TableCell>
                           <button
                             onClick={() =>
-                              navigate(
-                                `/?segmentId=${anomaly.id}&lat=${anomaly.lat}&lon=${anomaly.lon}&date=${anomaly.date}`
-                              )
+                              navigate(`/?segmentId=${anomaly.id}&lat=${anomaly.lat}&lon=${anomaly.lon}&date=${anomaly.date}`)
                             }
                             className="p-1 hover:bg-gray-100 rounded"
                           >
@@ -292,9 +247,9 @@ export default function AdminPage() {
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+            </CardContent>
+          </Card>
 
         </div>
       </div>

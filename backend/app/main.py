@@ -182,12 +182,16 @@ async def search_roads(q: str, db: Session = Depends(get_db)):
     ]
 
 @app.get("/api/dashboard/stats", dependencies=[Depends(get_current_active_user)])
-async def get_dashboard_stats(db: Session = Depends(get_db)):
+async def get_dashboard_stats(
+    target_date: Optional[date] = None,
+    vehicle_width_cm: float = 300.0,
+    db: Session = Depends(get_db),
+):
     """
     Returns global KPI statistics for the admin dashboard.
     """
     service = DashboardService(db)
-    return service.get_global_stats()
+    return service.get_global_stats(target_date, vehicle_width_cm)
 
 @app.get("/api/dashboard/coverage", dependencies=[Depends(get_current_active_user)])
 async def get_coverage_map(db: Session = Depends(get_db)):
