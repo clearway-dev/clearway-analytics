@@ -87,6 +87,22 @@ class CleanedMeasurement(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+class Cluster(Base):
+    __tablename__ = "clusters"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    road_segment_id = Column(UUID(as_uuid=True), ForeignKey("road_segments.id", ondelete="SET NULL"), nullable=True)
+    stat_date = Column(Date, nullable=False)
+    severity = Column(String(20), nullable=False)
+    cluster_size = Column(Integer, nullable=False)
+    avg_width = Column(Float, nullable=False)
+    min_width = Column(Float, nullable=False)
+    max_width = Column(Float, nullable=False)
+    geom = Column(Geometry("POINT", srid=4326), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+
 class SegmentStatistics(Base):
     __tablename__ = "segment_statistics"
 
