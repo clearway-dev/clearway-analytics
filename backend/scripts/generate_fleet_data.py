@@ -53,7 +53,6 @@ DATABASE_URL = os.environ["DATABASE_URL"]
 
 from app.database import SessionLocal
 from app.models import Batch, Sensor, Vehicle, Session, RawMeasurement
-from sqlalchemy import text as sa_text
 
 
 # ── data structures ───────────────────────────────────────────────────────────
