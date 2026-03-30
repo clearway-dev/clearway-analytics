@@ -24,7 +24,6 @@ tests/
 
 # Maintenance scripts — not needed for the running API
 scripts/
-calculate_stats.py
 
 # Docker files themselves
 Dockerfile
