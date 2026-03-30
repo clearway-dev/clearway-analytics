@@ -194,12 +194,16 @@ async def get_dashboard_stats(
     return service.get_global_stats(target_date, vehicle_width_cm)
 
 @app.get("/api/dashboard/coverage", dependencies=[Depends(get_current_active_user)])
-async def get_coverage_map(db: Session = Depends(get_db)):
+async def get_coverage_map(
+    target_date: Optional[date] = None,
+    db: Session = Depends(get_db),
+):
     """
     Returns GeoJSON heatmap of measurement coverage.
+    If target_date is provided, shows coverage for that date only.
     """
     service = DashboardService(db)
-    return service.get_coverage_map_data()
+    return service.get_coverage_map_data(target_date)
 
 @app.get("/api/dashboard/available-dates", dependencies=[Depends(get_current_active_user)])
 async def get_available_dates(db: Session = Depends(get_db)):

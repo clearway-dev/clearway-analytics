@@ -306,7 +306,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="p-0 flex-1 relative">
               <div className="absolute inset-0">
-                <CoverageMap />
+                <CoverageMap date={statsMode === "date" ? selectedDate : undefined} />
               </div>
             </CardContent>
           </Card>

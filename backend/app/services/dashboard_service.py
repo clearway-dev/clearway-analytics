@@ -12,18 +12,22 @@ class DashboardService:
     def _get_latest_date(self):
         return self.db.query(func.max(SegmentStatistics.stat_date)).scalar()
 
-    def get_coverage_map_data(self):
+    def get_coverage_map_data(self, target_date=None):
         """
         Returns GeoJSON of road segments showing measurement intensity.
         Only returns segments with > 0 measurements.
+        If target_date is provided, filters to that date only.
         """
-        results = self.db.query(
+        q = self.db.query(
             RoadSegment.id,
             func.sum(SegmentStatistics.measurements_count).label("total_count"),
             func.ST_AsGeoJSON(RoadSegment.geom).label("geometry")
         ).join(
             SegmentStatistics, RoadSegment.id == SegmentStatistics.segment_id
-        ).group_by(
+        )
+        if target_date:
+            q = q.filter(SegmentStatistics.stat_date == target_date)
+        results = q.group_by(
             RoadSegment.id
         ).having(
             func.sum(SegmentStatistics.measurements_count) > 0

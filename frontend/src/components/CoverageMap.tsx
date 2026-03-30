@@ -13,18 +13,27 @@ interface CoverageProperties {
 
 type CoverageFeature = Feature<Geometry, CoverageProperties>;
 
-export default function CoverageMap() {
+interface CoverageMapProps {
+  date?: string;
+}
+
+export default function CoverageMap({ date }: CoverageMapProps) {
   const [geoJsonData, setGeoJsonData] = useState<GeoJsonObject | null>(null);
   const [loading, setLoading] = useState(true);
   const [legendOpen, setLegendOpen] = useState(true);
   const position: LatLngTuple = [49.7384, 13.3736];
 
   useEffect(() => {
-    apiClient.get("/api/dashboard/coverage")
+    const controller = new AbortController();
+    setGeoJsonData(null);
+    setLoading(true);
+    const params = date ? `?target_date=${date}` : "";
+    apiClient.get(`/api/dashboard/coverage${params}`, { signal: controller.signal })
       .then((res) => setGeoJsonData(res.data))
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, []);
+    return () => controller.abort();
+  }, [date]);
 
   const styleFeature = (feature?: CoverageFeature) => {
     if (!feature || !feature.properties) {
@@ -100,7 +109,7 @@ export default function CoverageMap() {
           url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
         />
         {geoJsonData && (
-          <GeoJSON data={geoJsonData} style={styleFeature} />
+          <GeoJSON key={date ?? "alltime"} data={geoJsonData} style={styleFeature} />
         )}
       </MapContainer>
     </div>
