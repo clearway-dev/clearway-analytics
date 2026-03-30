@@ -28,7 +28,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<MapPage />} />
-              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/dashboard" element={<AdminPage />} />
               <Route path="/vehicles" element={<VehiclesPage />} />
               <Route path="/stations" element={<StationsPage />} />
               <Route path="/export" element={<ExportPage />} />
