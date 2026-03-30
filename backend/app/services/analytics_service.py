@@ -98,7 +98,7 @@ class AnalyticsService:
                 bucketed AS (
                     SELECT WIDTH_BUCKET(cm.cleaned_width, 0, 1000, 40) AS bucket
                     FROM cleaned_measurements cm, seg
-                    WHERE ST_DWithin(cm.geom::geography, seg.geom::geography, 10)
+                    WHERE ST_DWithin(cm.geom, seg.geom, 0.00008983)
                       AND cm.cleaned_width BETWEEN 0 AND 1000
                 )
                 SELECT
