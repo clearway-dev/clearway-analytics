@@ -42,11 +42,11 @@ async def get_segments_in_bbox(
                 CROSS JOIN LATERAL (
                     SELECT rs.id
                     FROM road_segments rs
-                    WHERE ST_DWithin(cm.geom::geography, rs.geom::geography, 10)
+                    WHERE ST_DWithin(cm.geom, rs.geom, 0.00008983)
                     ORDER BY cm.geom <-> rs.geom
                     LIMIT 1
                 ) rs
-                WHERE b.session_id = :session_id::uuid
+                WHERE b.session_id = CAST(:session_id AS uuid)
             ),
             agg AS (
                 SELECT
