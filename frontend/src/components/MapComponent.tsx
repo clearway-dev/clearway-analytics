@@ -173,12 +173,12 @@ export default function MapComponent({
   const geoJsonKey = `${dataVersion}-${vehicleWidth}-${routingMode}`;
 
   const styleFeature = (feature?: SegmentFeature) => {
-    const avgWidth = feature?.properties?.avg_width;
-    if (avgWidth == null) {
+    const minWidth = feature?.properties?.min_width;
+    if (minWidth == null) {
       return { color: "#aaaaaa", weight: 2, opacity: 0.5 };
     }
     return {
-      color: avgWidth >= vehicleWidth ? "#2ecc71" : "#e74c3c",
+      color: minWidth >= vehicleWidth ? "#2ecc71" : "#e74c3c",
       weight: 4,
       opacity: 0.9,
     };
@@ -192,7 +192,7 @@ export default function MapComponent({
         if (!p) return;
         const avg = p.avg_width;
         const status =
-          avg == null ? "no_data" : avg >= vehicleWidth ? "ok" : "narrow";
+          p.min_width == null ? "no_data" : p.min_width >= vehicleWidth ? "ok" : "narrow";
         const bounds = (layer as Polyline).getBounds();
         const leafletCenter = bounds.getCenter();
         const center: LatLngTuple = [leafletCenter.lat, leafletCenter.lng];
