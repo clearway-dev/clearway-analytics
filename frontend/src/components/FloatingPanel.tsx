@@ -520,7 +520,7 @@ export default function FloatingPanel({
                 : "text-gray-500 hover:text-gray-700"
             }`}
           >
-            Aktuální
+            Nejnovější
           </button>
           <button
             onClick={handleHistoryClick}

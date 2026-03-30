@@ -30,6 +30,7 @@ class MLService:
             Cluster.severity,
             Cluster.cluster_size,
             Cluster.avg_width,
+            Cluster.min_width,
         ).filter(Cluster.stat_date == target_date)
 
         if all(v is not None for v in [min_lon, min_lat, max_lon, max_lat]):
@@ -49,6 +50,7 @@ class MLService:
                 "severity": r.severity,
                 "cluster_size": r.cluster_size,
                 "avg_width": r.avg_width,
+                "min_width": r.min_width,
             }
             for r in results
         ]

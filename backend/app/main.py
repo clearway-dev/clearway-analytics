@@ -451,6 +451,7 @@ async def get_obstacles(
                 "severity": obs["severity"],
                 "cluster_size": obs["cluster_size"],
                 "avg_width": obs["avg_width"],
+                "min_width": obs["min_width"],
             }
         })
 

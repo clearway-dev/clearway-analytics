@@ -113,7 +113,7 @@ def compute_for_date(target_date: date) -> None:
 
             new_clusters.append(Cluster(
                 stat_date    = target_date,
-                severity     = _severity(avg_w_m),
+                severity     = _severity(min_w_m),
                 cluster_size = int(mask.sum()),
                 avg_width    = round(avg_w_m, 4),
                 min_width    = round(min_w_m, 4),

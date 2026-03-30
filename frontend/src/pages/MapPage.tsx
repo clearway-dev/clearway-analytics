@@ -69,10 +69,9 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
-    if (!isLiveMode && selectedDate) {
-      fetchObstacles(selectedDate).then(setObstacles);
-    }
-  }, [selectedDate, isLiveMode]);
+    if (!mapDate) return;
+    fetchObstacles(mapDate).then(setObstacles);
+  }, [mapDate, isLiveMode]);
 
   // ------------------------------------------------------------------
   // Routing handlers
@@ -163,7 +162,6 @@ export default function MapPage() {
   // ------------------------------------------------------------------
   function handleLiveModeChange(isLive: boolean) {
     setIsLiveMode(isLive);
-    if (isLive) setObstacles([]);
   }
 
   return (
