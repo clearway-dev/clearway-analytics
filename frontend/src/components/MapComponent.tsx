@@ -10,6 +10,7 @@ import {
 } from "react-leaflet";
 import type { Feature, GeoJsonObject, Geometry } from "geojson";
 import type { Layer, Polyline } from "leaflet";
+import { Loader2 } from "lucide-react";
 import ObstacleLayer, { type ObstacleFeature } from "./ObstacleLayer";
 import apiClient from "../lib/api";
 
@@ -74,9 +75,11 @@ const DEBOUNCE_MS = 300;
 function BboxLoader({
   selectedDate,
   onData,
+  onLoading,
 }: {
   selectedDate: string;
   onData: (data: GeoJsonObject) => void;
+  onLoading: (loading: boolean) => void;
 }) {
   const map = useMap();
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -87,6 +90,7 @@ function BboxLoader({
     timerRef.current = setTimeout(async () => {
       // Below MIN_ZOOM the bbox is too large — clear segments and bail out
       if (map.getZoom() < MIN_ZOOM) {
+        onLoading(false);
         onData({ type: "FeatureCollection", features: [] } as GeoJsonObject);
         return;
       }
@@ -99,14 +103,17 @@ function BboxLoader({
         max_lon: b.getEast().toString(),
         target_date: selectedDate,
       });
+      onLoading(true);
       try {
         const res = await apiClient.get(`/api/maps/bbox?${params}`);
         onData(res.data);
       } catch {
         // network errors are non-fatal; the map simply keeps the previous data
+      } finally {
+        onLoading(false);
       }
     }, DEBOUNCE_MS);
-  }, [map, selectedDate, onData]);
+  }, [map, selectedDate, onData, onLoading]);
 
   useEffect(() => {
     scheduleFetch();
@@ -156,6 +163,7 @@ export default function MapComponent({
   const position: LatLngTuple = [49.7384, 13.3736];
   const [geoJsonData, setGeoJsonData] = useState<GeoJsonObject | null>(null);
   const [dataVersion, setDataVersion] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleData = useCallback((data: GeoJsonObject) => {
     setGeoJsonData(data);
@@ -202,6 +210,15 @@ export default function MapComponent({
   };
 
   return (
+    <div className="relative h-full w-full">
+    {isLoading && (
+      <div className="absolute inset-0 z-[1000] flex items-center justify-center backdrop-blur-sm bg-white/30 pointer-events-none">
+        <div className="flex flex-col items-center gap-3 bg-white/80 backdrop-blur-md px-8 py-6 rounded-2xl shadow-xl">
+          <Loader2 className="animate-spin h-10 w-10 text-blue-500" />
+          <span className="text-gray-700 text-sm font-medium">Načítám segmenty…</span>
+        </div>
+      </div>
+    )}
     <MapContainer
       center={position}
       zoom={14}
@@ -209,7 +226,7 @@ export default function MapComponent({
       zoomControl={false}
     >
       <MapController target={flyToTarget} />
-      <BboxLoader selectedDate={selectedDate} onData={handleData} />
+      <BboxLoader selectedDate={selectedDate} onData={handleData} onLoading={setIsLoading} />
       <RoutingClickHandler enabled={routingMode} onClick={onRouteMapClick} />
 
       <TileLayer
@@ -256,5 +273,6 @@ export default function MapComponent({
 
       <ObstacleLayer obstacles={obstacles} />
     </MapContainer>
+    </div>
   );
 }
