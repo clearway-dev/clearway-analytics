@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Pencil, Trash2, Plus, X, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Card, CardHeader, CardContent } from "../components/ui/card";
 import {
   Table, TableHeader, TableBody, TableRow,
   TableHead, TableCell,

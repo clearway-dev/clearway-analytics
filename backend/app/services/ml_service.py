@@ -1,8 +1,7 @@
 from datetime import date
 from typing import Optional
 
-from geoalchemy2 import Geography
-from sqlalchemy import cast, func
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import Cluster

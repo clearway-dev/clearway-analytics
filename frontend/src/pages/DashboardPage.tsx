@@ -35,7 +35,7 @@ interface DashboardStats {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedKey, setLoadedKey] = useState<string>("");
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [vehicleWidth, setVehicleWidth] = useState<number>(250);
@@ -56,18 +56,20 @@ export default function DashboardPage() {
     return () => clearTimeout(t);
   }, [vehicleWidth]);
 
+  const currentKey = selectedDate ? `${selectedDate}-${appliedWidth}` : "";
+  const loading = !!currentKey && loadedKey !== currentKey;
+
   useEffect(() => {
     if (!selectedDate) return;
-    setLoading(true);
+    const key = `${selectedDate}-${appliedWidth}`;
     const params = new URLSearchParams({
       target_date: selectedDate,
       vehicle_width_cm: String(appliedWidth),
     });
     apiClient
       .get(`/api/dashboard/stats?${params}`)
-      .then((res) => setStats(res.data))
-      .catch(() => setStats(null))
-      .finally(() => setLoading(false));
+      .then((res) => { setStats(res.data); setLoadedKey(key); })
+      .catch(() => { setStats(null); setLoadedKey(key); });
   }, [selectedDate, appliedWidth]);
 
   const formatDate = (d: string) =>
@@ -306,7 +308,10 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent className="p-0 flex-1 relative">
               <div className="absolute inset-0">
-                <CoverageMap date={statsMode === "date" ? selectedDate : undefined} />
+                <CoverageMap
+                  key={statsMode === "date" ? selectedDate : "alltime"}
+                  date={statsMode === "date" ? selectedDate : undefined}
+                />
               </div>
             </CardContent>
           </Card>

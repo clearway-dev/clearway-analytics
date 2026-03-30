@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Pencil, Trash2, Plus, X, ShieldCheck, User as UserIcon, Loader2 } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Card, CardHeader, CardContent } from "../components/ui/card";
 import {
   Table, TableHeader, TableBody, TableRow,
   TableHead, TableCell,

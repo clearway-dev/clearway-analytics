@@ -25,8 +25,6 @@ export default function CoverageMap({ date }: CoverageMapProps) {
 
   useEffect(() => {
     const controller = new AbortController();
-    setGeoJsonData(null);
-    setLoading(true);
     const params = date ? `?target_date=${date}` : "";
     apiClient.get(`/api/dashboard/coverage${params}`, { signal: controller.signal })
       .then((res) => setGeoJsonData(res.data))
