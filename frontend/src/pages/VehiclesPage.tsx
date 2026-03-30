@@ -1,11 +1,10 @@
 import { useEffect, useState } from "react";
-import { Pencil, Trash2, Plus, X, Sparkles } from "lucide-react";
+import { Pencil, Trash2, Plus, X, Sparkles, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import AIImportModal, { type AIVehicleData } from "../components/vehicles/AIImportModal";
 import {
   Card,
   CardHeader,
-  CardTitle,
   CardContent,
 } from "../components/ui/card";
 import {
@@ -230,7 +229,8 @@ export default function VehiclesPage() {
   // ------------------------------------------------------------------
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-full text-gray-500">
+      <div className="flex items-center justify-center gap-2 h-full text-sm text-gray-500">
+        <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
         Načítám…
       </div>
     );
@@ -271,9 +271,7 @@ export default function VehiclesPage() {
       <div className="flex-1 p-6 pt-2 overflow-auto">
         <Card>
           <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm text-gray-500 font-normal">
-              {vehicles.length} záznamů
-            </CardTitle>
+            <p className="text-xs text-gray-400">{vehicles.length} záznamů</p>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -318,14 +316,14 @@ export default function VehiclesPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => openEdit(v)}
-                            className="p-1.5 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-800"
+                            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800"
                             title="Upravit"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeleteId(v.id)}
-                            className="p-1.5 hover:bg-red-50 rounded text-gray-500 hover:text-red-600"
+                            className="p-1.5 hover:bg-red-50 rounded-lg text-gray-500 hover:text-red-600"
                             title="Smazat"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -356,7 +354,7 @@ export default function VehiclesPage() {
               </h3>
               <button
                 onClick={closeModal}
-                className="p-1 hover:bg-gray-100 rounded text-gray-500"
+                className="p-1 hover:bg-gray-100 rounded-lg text-gray-500"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -373,7 +371,7 @@ export default function VehiclesPage() {
                   type="text"
                   value={form.name}
                   onChange={(e) => handleField("name", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="např. CAS 24 SCANIA"
                 />
               </div>
@@ -386,7 +384,7 @@ export default function VehiclesPage() {
                 <select
                   value={form.category}
                   onChange={(e) => handleField("category", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   <option value="">— Nevybráno —</option>
                   {CATEGORIES.map((c) => (
@@ -423,7 +421,7 @@ export default function VehiclesPage() {
                       step="0.01"
                       value={form[field]}
                       onChange={(e) => handleField(field, e.target.value)}
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="volitelné"
                     />
                   </div>

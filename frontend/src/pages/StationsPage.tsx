@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Pencil, Trash2, Plus, X } from "lucide-react";
+import { Pencil, Trash2, Plus, X, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
+import { Card, CardHeader, CardContent } from "../components/ui/card";
 import {
   Table, TableHeader, TableBody, TableRow,
   TableHead, TableCell,
@@ -242,7 +242,12 @@ export default function StationsPage() {
   }
 
   if (loading) {
-    return <div className="flex justify-center items-center h-full text-gray-500">Načítám…</div>;
+    return (
+      <div className="flex items-center justify-center gap-2 h-full text-sm text-gray-500">
+        <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
+        Načítám…
+      </div>
+    );
   }
   if (pageError) {
     return <div className="p-8 text-red-500">{pageError}</div>;
@@ -268,9 +273,7 @@ export default function StationsPage() {
       <div className="flex-1 p-6 pt-2 overflow-auto">
         <Card>
           <CardHeader className="p-4 pb-2">
-            <CardTitle className="text-sm text-gray-500 font-normal">
-              {stations.length} záznamů
-            </CardTitle>
+            <p className="text-xs text-gray-400">{stations.length} záznamů</p>
           </CardHeader>
           <CardContent className="p-0">
             <Table>
@@ -306,14 +309,14 @@ export default function StationsPage() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => openEdit(s)}
-                            className="p-1.5 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-800"
+                            className="p-1.5 hover:bg-gray-100 rounded-lg text-gray-500 hover:text-gray-800"
                             title="Upravit"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
                           <button
                             onClick={() => setDeleteId(s.id)}
-                            className="p-1.5 hover:bg-red-50 rounded text-gray-500 hover:text-red-600"
+                            className="p-1.5 hover:bg-red-50 rounded-lg text-gray-500 hover:text-red-600"
                             title="Smazat"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -338,7 +341,7 @@ export default function StationsPage() {
               <h3 className="text-lg font-semibold text-gray-900">
                 {editingId ? "Upravit stanici" : "Nová stanice"}
               </h3>
-              <button onClick={closeModal} className="p-1 hover:bg-gray-100 rounded text-gray-500">
+              <button onClick={closeModal} className="p-1 hover:bg-gray-100 rounded-lg text-gray-500">
                 <X className="w-5 h-5" />
               </button>
             </div>
@@ -364,7 +367,7 @@ export default function StationsPage() {
                   type="text"
                   value={form.name}
                   onChange={(e) => handleField("name", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="např. Stanice HZS Plzeň-město"
                 />
               </div>
@@ -374,7 +377,7 @@ export default function StationsPage() {
                 <select
                   value={form.type}
                   onChange={(e) => handleField("type", e.target.value)}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                 >
                   <option value="">— Nevybráno —</option>
                   {STATION_TYPES.map((t) => (
@@ -398,7 +401,7 @@ export default function StationsPage() {
                   onChange={(e) => handleAddressInput(e.target.value)}
                   onFocus={() => { if (suggestions.length > 0) setShowSuggestions(true); }}
                   onBlur={() => { setTimeout(() => setShowSuggestions(false), 150); }}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Začněte psát adresu nebo klikněte na mapu…"
                   autoComplete="off"
                 />
@@ -433,7 +436,7 @@ export default function StationsPage() {
                     step="0.00001"
                     value={form.lat}
                     onChange={(e) => handleField("lat", e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="49.74832"
                   />
                 </div>
@@ -446,7 +449,7 @@ export default function StationsPage() {
                     step="0.00001"
                     value={form.lon}
                     onChange={(e) => handleField("lon", e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="13.37736"
                   />
                 </div>
@@ -458,7 +461,7 @@ export default function StationsPage() {
                   value={form.notes}
                   onChange={(e) => handleField("notes", e.target.value)}
                   rows={2}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                   placeholder="Volitelné poznámky"
                 />
               </div>

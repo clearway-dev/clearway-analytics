@@ -208,20 +208,20 @@ export default function ExportPage() {
 
             {/* 1. Time range mode */}
             <Card>
-              <CardContent className="p-5 space-y-3">
+              <CardContent className="p-4 space-y-3">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Časový rozsah
                 </h3>
 
-                <div className="flex bg-gray-100 rounded-xl p-1 gap-1">
+                <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
                   {MODES.map((m) => (
                     <button
                       key={m.id}
                       onClick={() => setMode(m.id)}
-                      className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all text-center ${
+                      className={`flex-1 py-1.5 px-3 rounded-md text-xs font-medium transition-all text-center ${
                         mode === m.id
                           ? "bg-white text-blue-600 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          : "text-gray-500 hover:text-gray-700"
                       }`}
                     >
                       {m.label}
@@ -276,7 +276,7 @@ export default function ExportPage() {
 
             {/* 2. Format */}
             <Card>
-              <CardContent className="p-5 space-y-3">
+              <CardContent className="p-4 space-y-3">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Formát
                 </h3>
@@ -316,13 +316,16 @@ export default function ExportPage() {
           {/* ── Right column: preview + download ── */}
           <div className="space-y-4 xl:sticky xl:top-0">
             <Card>
-              <CardContent className="p-5 space-y-3">
+              <CardContent className="p-4 space-y-3">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Náhled
                 </h3>
 
                 {previewLoading && (
-                  <p className="text-sm text-gray-400">Načítám…</p>
+                  <div className="flex items-center gap-2 text-sm text-gray-500">
+                    <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
+                    Načítám…
+                  </div>
                 )}
                 {!previewLoading && preview === null && (
                   <p className="text-sm text-red-400">Náhled nelze načíst.</p>
@@ -359,7 +362,7 @@ export default function ExportPage() {
 
             {/* Filename input */}
             <Card>
-              <CardContent className="p-5 space-y-2">
+              <CardContent className="p-4 space-y-2">
                 <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Název souboru
                 </h3>
@@ -381,7 +384,7 @@ export default function ExportPage() {
             <button
               onClick={handleDownload}
               disabled={!canDownload}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
+              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed bg-blue-600 text-white hover:bg-blue-700"
             >
               {isExporting ? (
                 <>

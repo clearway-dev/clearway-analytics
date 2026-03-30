@@ -40,7 +40,7 @@ export default function Layout() {
             Mapa
           </NavLink>
 
-          <NavLink to="/admin" className={NAV_LINK_CLASS}>
+          <NavLink to="/dashboard" className={NAV_LINK_CLASS}>
             <LayoutDashboard className="w-5 h-5 mr-3" />
             Přehled
           </NavLink>

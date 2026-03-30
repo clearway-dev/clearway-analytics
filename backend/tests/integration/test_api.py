@@ -7,7 +7,7 @@ from datetime import date, datetime
 import pytest
 from geoalchemy2 import WKTElement
 
-from app.models import CleanedMeasurement, Sensor, Vehicle, Session, RawMeasurement
+from app.models import Batch, CleanedMeasurement, Cluster, Sensor, Vehicle, Session, RawMeasurement
 
 
 # ---------------------------------------------------------------------------
@@ -76,8 +76,6 @@ _TEST_DATETIME = datetime(2020, 1, 1, 12, 0, 0)
 _BASE_LAT = 49.747000
 _BASE_LON = 13.377000
 
-# MLService.detect_obstacles has an early-exit guard: len(results) < 10 → return [].
-# With 10 points and MIN_SAMPLES=5, DBSCAN produces exactly one cluster.
 _CLUSTER_SIZE = 10
 
 
@@ -100,12 +98,16 @@ def obstacle_measurements(db):
     db.add(session)
     db.flush()  # populate session.id
 
+    batch = Batch(session_id=session.id, status="completed")
+    db.add(batch)
+    db.flush()  # populate batch.id
+
     raw_records = []
     for i in range(_CLUSTER_SIZE):
         lat = _BASE_LAT + i * 0.000001
         lon = _BASE_LON + i * 0.000001
         raw = RawMeasurement(
-            session_id=session.id,
+            batch_id=batch.id,
             measured_at=_TEST_DATETIME,
             latitude=lat,
             longitude=lon,
@@ -131,11 +133,24 @@ def obstacle_measurements(db):
         db.add(rec)
         cleaned_records.append(rec)
 
+    # Insert the pre-computed cluster that the endpoint now reads from.
+    # width=150 cm → avg/min/max = 1.5 m → severity=critical
+    cluster = Cluster(
+        stat_date=_TEST_DATE,
+        severity="critical",
+        cluster_size=_CLUSTER_SIZE,
+        avg_width=1.5,
+        min_width=1.5,
+        max_width=1.5,
+        geom=WKTElement(f"POINT({_BASE_LON} {_BASE_LAT})", srid=4326),
+    )
+    db.add(cluster)
     db.commit()
 
     yield
 
-    # ON DELETE CASCADE propagates: sensor/vehicle → session → raw_measurements → cleaned_measurements
+    db.delete(cluster)
+    # ON DELETE CASCADE propagates: sensor/vehicle → session → batches → raw_measurements → cleaned_measurements
     db.delete(sensor)
     db.delete(vehicle)
     db.commit()
@@ -143,8 +158,8 @@ def obstacle_measurements(db):
 
 def test_dbscan_detects_exactly_one_obstacle_cluster(client, obstacle_measurements):
     """
-    10 narrow measurements clustered within 1 m on _TEST_DATE must produce
-    exactly one obstacle with severity=critical and the correct cluster size.
+    A pre-computed cluster on _TEST_DATE must be returned by the obstacles
+    endpoint with severity=critical and the correct cluster size.
     """
     response = client.get(
         "/api/analytics/obstacles",

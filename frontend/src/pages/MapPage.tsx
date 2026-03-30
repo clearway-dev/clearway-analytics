@@ -8,7 +8,8 @@ const DEFAULT_CENTER: LatLngTuple = [49.7384, 13.3736];
 const DEFAULT_ZOOM = 14;
 import { useSearchParams } from "react-router-dom";
 import type { ObstacleFeature } from "../components/ObstacleLayer";
-import { fetchAvailableDates, fetchObstacles } from "../services/api";
+import { fetchAvailableDates, fetchObstacles, fetchSessions } from "../services/api";
+import type { SessionInfo } from "../services/api";
 import type { GeoJsonObject } from "geojson";
 import apiClient from "../lib/api";
 
@@ -39,6 +40,11 @@ export default function MapPage() {
 
   const [obstacles, setObstacles] = useState<ObstacleFeature[]>([]);
   const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [sessions, setSessions] = useState<SessionInfo[]>([]);
+  const [selectedSession, setSelectedSession] = useState<string | null>(null);
+
+  // effectiveSession auto-resets to null when date changes (new sessions list won't contain old id)
+  const effectiveSession = sessions.find(s => s.id === selectedSession) ? selectedSession : null;
 
   // In latest mode always use the most recent available date — derived, no state sync needed
   const mapDate =
@@ -69,10 +75,17 @@ export default function MapPage() {
   }, []);
 
   useEffect(() => {
-    if (!isLiveMode && selectedDate) {
-      fetchObstacles(selectedDate).then(setObstacles);
+    if (!mapDate) return;
+    fetchObstacles(mapDate).then(setObstacles);
+  }, [mapDate, isLiveMode]);
+
+  useEffect(() => {
+    if (isLiveMode || !mapDate) {
+      setSessions([]);
+      return;
     }
-  }, [selectedDate, isLiveMode]);
+    fetchSessions(mapDate).then(setSessions);
+  }, [mapDate, isLiveMode]);
 
   // ------------------------------------------------------------------
   // Routing handlers
@@ -163,7 +176,6 @@ export default function MapPage() {
   // ------------------------------------------------------------------
   function handleLiveModeChange(isLive: boolean) {
     setIsLiveMode(isLive);
-    if (isLive) setObstacles([]);
   }
 
   return (
@@ -179,6 +191,7 @@ export default function MapPage() {
           }}
           vehicleWidth={vehicleWidth}
           selectedDate={mapDate}
+          sessionId={effectiveSession}
           flyToTarget={flyToTarget}
           obstacles={obstacles}
           routingMode={routingMode}
@@ -200,6 +213,9 @@ export default function MapPage() {
         setIsLiveMode={handleLiveModeChange}
         onSearchResultSelect={(lat, lon) => setFlyToTarget({ center: [lat, lon], zoom: 16 })}
         availableDates={availableDates}
+        sessions={sessions}
+        selectedSession={effectiveSession}
+        onSessionChange={setSelectedSession}
         routingMode={routingMode}
         onSetRouteStart={handleSetRouteStart}
         onSetRouteEnd={handleSetRouteEnd}

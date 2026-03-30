@@ -33,6 +33,28 @@ npm run preview  # Preview production build
 ```bash
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 fastmcp run app/mcp/server.py:mcp --transport sse --port 8001
+```
+
+#### Připojení k produkční DB lokálně
+
+Port 5432 není na VPS exponovaný navenek. DB container (`clearway_db`) má IP `172.20.0.2` uvnitř Docker sítě — tunel přes SSH:
+
+```bash
+# Terminál 1 — nech běžet
+ssh -L 5433:172.20.0.2:5432 vandl@77.42.45.121 -N
+
+# Terminál 2 — backend
+export DATABASE_URL="postgresql://clearway:clearway_dev_password@127.0.0.1:5433/clearway_db"
+export SECRET_KEY=local-dev-secret
+export DEBUG=true
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+```
+
+Poznámky:
+- `localhost` nefunguje — psycopg2 se připojuje přes IPv6 (`::1`), tunel poslouchá na IPv4. Použij `127.0.0.1`.
+- IP containeru zjistíš přes: `ssh vandl@77.42.45.121 "docker inspect clearway_db --format '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}'"`
+
+```bash
 
 # Data scripts (run from backend/)
 python scripts/seed_stations.py   # Seed emergency stations

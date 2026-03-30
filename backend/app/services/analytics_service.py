@@ -8,6 +8,9 @@ log = logging.getLogger(__name__)
 
 # Maximum distance (metres) for assigning a measurement to a road segment.
 SNAP_DISTANCE_M = 10
+# Degree approximation of SNAP_DISTANCE_M for geometry-based ST_DWithin.
+# 1 degree ≈ 111 320 m at the equator; accurate enough for Plzeň (lat ~49.7°).
+SNAP_DISTANCE_DEG = SNAP_DISTANCE_M / 111_320.0
 
 
 class AnalyticsService:
@@ -43,11 +46,12 @@ class AnalyticsService:
                     CROSS JOIN LATERAL (
                         SELECT rs.id
                         FROM road_segments rs
-                        WHERE ST_DWithin(cm.geom::geography, rs.geom::geography, :snap_m)
+                        WHERE ST_DWithin(cm.geom, rs.geom, :snap_deg)
                         ORDER BY cm.geom <-> rs.geom
                         LIMIT 1
                     ) rs
-                    WHERE DATE(cm.created_at) = :target_date
+                    WHERE cm.created_at >= :target_date
+                      AND cm.created_at <  :target_date + INTERVAL '1 day'
                 )
                 SELECT
                     segment_id,
@@ -58,7 +62,7 @@ class AnalyticsService:
                 FROM nearest
                 GROUP BY segment_id
             """),
-            {"target_date": target_date, "snap_m": SNAP_DISTANCE_M},
+            {"target_date": target_date, "snap_deg": SNAP_DISTANCE_DEG},
         )
 
         rows = result.fetchall()

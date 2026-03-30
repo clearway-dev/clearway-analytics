@@ -4,7 +4,7 @@ import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Layout from "./components/Layout";
 import LoginPage from "./pages/LoginPage";
 import MapPage from "./pages/MapPage";
-import AdminPage from "./pages/AdminPage";
+import DashboardPage from "./pages/DashboardPage";
 import VehiclesPage from "./pages/VehiclesPage";
 import StationsPage from "./pages/StationsPage";
 import ExportPage from "./pages/ExportPage";
@@ -28,7 +28,7 @@ function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route path="/" element={<MapPage />} />
-              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/vehicles" element={<VehiclesPage />} />
               <Route path="/stations" element={<StationsPage />} />
               <Route path="/export" element={<ExportPage />} />

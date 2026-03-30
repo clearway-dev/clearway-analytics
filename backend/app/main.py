@@ -182,20 +182,28 @@ async def search_roads(q: str, db: Session = Depends(get_db)):
     ]
 
 @app.get("/api/dashboard/stats", dependencies=[Depends(get_current_active_user)])
-async def get_dashboard_stats(db: Session = Depends(get_db)):
+async def get_dashboard_stats(
+    target_date: Optional[date] = None,
+    vehicle_width_cm: float = 300.0,
+    db: Session = Depends(get_db),
+):
     """
     Returns global KPI statistics for the admin dashboard.
     """
     service = DashboardService(db)
-    return service.get_global_stats()
+    return service.get_global_stats(target_date, vehicle_width_cm)
 
 @app.get("/api/dashboard/coverage", dependencies=[Depends(get_current_active_user)])
-async def get_coverage_map(db: Session = Depends(get_db)):
+async def get_coverage_map(
+    target_date: Optional[date] = None,
+    db: Session = Depends(get_db),
+):
     """
     Returns GeoJSON heatmap of measurement coverage.
+    If target_date is provided, shows coverage for that date only.
     """
     service = DashboardService(db)
-    return service.get_coverage_map_data()
+    return service.get_coverage_map_data(target_date)
 
 @app.get("/api/dashboard/available-dates", dependencies=[Depends(get_current_active_user)])
 async def get_available_dates(db: Session = Depends(get_db)):
@@ -414,6 +422,45 @@ async def export_segments(
     )
 
 
+@app.get("/api/analytics/sessions", dependencies=[Depends(get_current_active_user)])
+async def get_sessions_for_date(
+    target_date: date,
+    db: Session = Depends(get_db),
+):
+    """
+    Returns measurement sessions that collected data on the given date.
+    Each session represents one measurement run by a vehicle.
+    """
+    from sqlalchemy import text as sql_text
+    rows = db.execute(
+        sql_text("""
+            SELECT
+                s.id,
+                MIN(rm.measured_at) AS started_at,
+                MAX(rm.measured_at) AS ended_at,
+                COUNT(cm.id)        AS measurement_count
+            FROM sessions s
+            JOIN batches b             ON b.session_id          = s.id
+            JOIN raw_measurements rm   ON rm.batch_id           = b.id
+            JOIN cleaned_measurements cm ON cm.raw_measurement_id = rm.id
+            WHERE DATE(rm.measured_at) = :d
+            GROUP BY s.id
+            ORDER BY started_at
+        """),
+        {"d": target_date},
+    ).fetchall()
+
+    return [
+        {
+            "id": str(row.id),
+            "started_at": row.started_at.isoformat(),
+            "ended_at": row.ended_at.isoformat(),
+            "measurement_count": int(row.measurement_count),
+        }
+        for row in rows
+    ]
+
+
 @app.get("/api/analytics/obstacles", dependencies=[Depends(get_current_active_user)])
 async def get_obstacles(
     target_date: date = date.today(),
@@ -443,6 +490,7 @@ async def get_obstacles(
                 "severity": obs["severity"],
                 "cluster_size": obs["cluster_size"],
                 "avg_width": obs["avg_width"],
+                "min_width": obs["min_width"],
             }
         })
 
