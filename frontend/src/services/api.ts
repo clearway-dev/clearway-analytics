@@ -59,6 +59,22 @@ export async function downloadSegmentExport(
   URL.revokeObjectURL(url);
 }
 
+export interface SessionInfo {
+  id: string;
+  started_at: string;
+  ended_at: string;
+  measurement_count: number;
+}
+
+export async function fetchSessions(targetDate: string): Promise<SessionInfo[]> {
+  try {
+    const res = await apiClient.get<SessionInfo[]>(`/api/analytics/sessions?target_date=${targetDate}`);
+    return res.data;
+  } catch {
+    return [];
+  }
+}
+
 export async function fetchObstacles(targetDate: string): Promise<import("../components/ObstacleLayer").ObstacleFeature[]> {
   try {
     const res = await apiClient.get(`/api/analytics/obstacles?target_date=${targetDate}`);

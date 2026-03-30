@@ -155,36 +155,20 @@ def _in_obstacle_zone(lat: float, lon: float, zones: list[ObstacleZone]) -> Opti
 
 # ── Phase 0: FK anchor record ─────────────────────────────────────────────────
 
-def get_or_create_anchor_raw_id(db) -> int:
+def create_session_raw_id(db, target_datetime: datetime.datetime) -> int:
     """
-    Return a valid raw_measurements.id to satisfy the NOT NULL FK on cleaned_measurements.
-
-    Looks for an existing 'Simulator Anchor' sensor to avoid creating duplicate chains
-    on repeated script runs. Creates Sensor → Vehicle → Session → RawMeasurement only
-    when no anchor exists yet.
+    Create a fresh Sensor → Vehicle → Session → Batch → RawMeasurement chain
+    for this script run. Each invocation produces a distinct session so that
+    session-based filtering in the frontend can distinguish individual runs.
     """
-    existing = db.execute(sa_text("""
-        SELECT rm.id
-        FROM raw_measurements rm
-        JOIN batches b ON rm.batch_id = b.id
-        JOIN sessions s ON b.session_id = s.id
-        JOIN sensors sen ON s.sensor_id = sen.id
-        WHERE sen.description = 'Simulator Anchor'
-        LIMIT 1
-    """)).fetchone()
+    label = f"Simulator {target_datetime.strftime('%Y-%m-%d %H:%M')}"
+    logging.info(f"  Creating session chain for '{label}'...")
 
-    if existing:
-        anchor_id = existing[0]
-        logging.info(f"  Reusing existing anchor raw_measurement id={anchor_id}")
-        return anchor_id
-
-    logging.info("  Creating Simulator Anchor chain (Sensor → Vehicle → Session → Batch → RawMeasurement)...")
-
-    sensor = Sensor(description="Simulator Anchor", is_active=False)
+    sensor = Sensor(description=label, is_active=False)
     db.add(sensor)
     db.flush()
 
-    vehicle = Vehicle(vehicle_name="Simulator Anchor", width=2.0)
+    vehicle = Vehicle(vehicle_name=label, width=200.0)
     db.add(vehicle)
     db.flush()
 
@@ -198,7 +182,7 @@ def get_or_create_anchor_raw_id(db) -> int:
 
     raw = RawMeasurement(
         batch_id=batch.id,
-        measured_at=datetime.datetime.utcnow(),
+        measured_at=target_datetime,
         latitude=49.7477,
         longitude=13.3776,
         distance_left=0.0,
@@ -207,7 +191,7 @@ def get_or_create_anchor_raw_id(db) -> int:
     )
     db.add(raw)
     db.commit()
-    logging.info(f"  Anchor raw_measurement id={raw.id}")
+    logging.info(f"  Session raw_measurement id={raw.id}, measured_at={target_datetime}")
     return raw.id
 
 
@@ -475,6 +459,13 @@ def parse_args() -> argparse.Namespace:
         help="Date to stamp all generated records with (default: today).",
     )
     parser.add_argument(
+        "--time",
+        default="08:00",
+        metavar="HH:MM",
+        help="Time of day for this measurement run (default: 08:00). "
+             "Use different values across runs to create distinct sessions.",
+    )
+    parser.add_argument(
         "--seed", type=int, default=None, metavar="INT",
         help="Random seed for reproducibility (default: non-deterministic).",
     )
@@ -501,16 +492,22 @@ def main() -> None:
         logging.error("--date must be in YYYY-MM-DD format.")
         raise SystemExit(1)
 
-    target_datetime = datetime.datetime.combine(target_date, datetime.time(8, 0, 0))
+    try:
+        hour, minute = [int(x) for x in args.time.split(":")]
+        target_datetime = datetime.datetime.combine(target_date, datetime.time(hour, minute, 0))
+    except (ValueError, AttributeError):
+        logging.error("--time must be in HH:MM format.")
+        raise SystemExit(1)
+
     rng = np.random.default_rng(args.seed)
     if args.seed is not None:
         logging.info(f"Random seed: {args.seed}")
 
-    # Phase 0 — FK anchor (SQLAlchemy ORM)
-    logging.info("Phase 0: Resolving FK anchor record...")
+    # Phase 0 — create a fresh session chain for this run
+    logging.info("Phase 0: Creating session chain...")
     db = SessionLocal()
     try:
-        raw_measurement_id = get_or_create_anchor_raw_id(db)
+        raw_measurement_id = create_session_raw_id(db, target_datetime)
     finally:
         db.close()
 

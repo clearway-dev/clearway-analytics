@@ -40,6 +40,7 @@ interface MapComponentProps {
   onSegmentSelect: (data: SegmentData | null) => void;
   vehicleWidth: number;
   selectedDate: string;
+  sessionId?: string | null;
   flyToTarget: FlyToTarget | null;
   obstacles?: ObstacleFeature[];
   // Routing
@@ -74,10 +75,12 @@ const DEBOUNCE_MS = 300;
 
 function BboxLoader({
   selectedDate,
+  sessionId,
   onData,
   onLoading,
 }: {
   selectedDate: string;
+  sessionId?: string | null;
   onData: (data: GeoJsonObject) => void;
   onLoading: (loading: boolean) => void;
 }) {
@@ -103,6 +106,7 @@ function BboxLoader({
         max_lon: b.getEast().toString(),
         target_date: selectedDate,
       });
+      if (sessionId) params.set("session_id", sessionId);
       onLoading(true);
       try {
         const res = await apiClient.get(`/api/maps/bbox?${params}`);
@@ -113,7 +117,7 @@ function BboxLoader({
         onLoading(false);
       }
     }, DEBOUNCE_MS);
-  }, [map, selectedDate, onData, onLoading]);
+  }, [map, selectedDate, sessionId, onData, onLoading]);
 
   useEffect(() => {
     scheduleFetch();
@@ -152,6 +156,7 @@ export default function MapComponent({
   onSegmentSelect,
   vehicleWidth,
   selectedDate,
+  sessionId,
   flyToTarget,
   obstacles = [],
   routingMode,
@@ -226,7 +231,7 @@ export default function MapComponent({
       zoomControl={false}
     >
       <MapController target={flyToTarget} />
-      <BboxLoader selectedDate={selectedDate} onData={handleData} onLoading={setIsLoading} />
+      <BboxLoader selectedDate={selectedDate} sessionId={sessionId} onData={handleData} onLoading={setIsLoading} />
       <RoutingClickHandler enabled={routingMode} onClick={onRouteMapClick} />
 
       <TileLayer

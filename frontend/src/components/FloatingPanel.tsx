@@ -3,6 +3,7 @@ import apiClient from "../lib/api";
 import { Calendar } from "./ui/calendar";
 import { format } from "date-fns";
 import { Search, CalendarIcon, ChevronDown, Navigation, X, Loader2, MapPin } from "lucide-react";
+import type { SessionInfo } from "../services/api";
 import type { LatLngTuple } from "leaflet";
 
 
@@ -203,6 +204,9 @@ interface FloatingPanelProps {
   setIsLiveMode: (isLive: boolean) => void;
   onSearchResultSelect: (lat: number, lon: number) => void;
   availableDates: string[];
+  sessions: SessionInfo[];
+  selectedSession: string | null;
+  onSessionChange: (id: string | null) => void;
   // Routing
   routingMode: boolean;
   onToggleRouting: () => void;
@@ -233,6 +237,9 @@ export default function FloatingPanel({
   setIsLiveMode,
   onSearchResultSelect,
   availableDates,
+  sessions,
+  selectedSession,
+  onSessionChange,
   routingMode,
   onToggleRouting,
   onClearRoute,
@@ -535,38 +542,77 @@ export default function FloatingPanel({
         </div>
 
         {!isLiveMode && (
-          <div className="relative animate-in fade-in slide-in-from-top-2 duration-300">
-            <button
-              onClick={() => setShowCalendar(!showCalendar)}
-              className="w-full flex justify-between items-center px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
-            >
-              <span>{formatDisplayDate(selectedDate)}</span>
-              <CalendarIcon className="w-4 h-4 text-gray-400" />
-            </button>
+          <>
+            <div className="relative animate-in fade-in slide-in-from-top-2 duration-300">
+              <button
+                onClick={() => setShowCalendar(!showCalendar)}
+                className="w-full flex justify-between items-center px-3 py-2 border border-gray-200 rounded-lg text-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              >
+                <span>{formatDisplayDate(selectedDate)}</span>
+                <CalendarIcon className="w-4 h-4 text-gray-400" />
+              </button>
 
-            {showCalendar && (
-              <div className="absolute top-full left-0 mt-2 w-auto bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
-                <Calendar
-                  mode="single"
-                  selected={new Date(selectedDate)}
-                  onSelect={(date) => {
-                    if (date) {
-                      setSelectedDate(format(date, "yyyy-MM-dd"));
-                      setShowCalendar(false);
-                    }
-                  }}
-                  modifiers={{
-                    hasData: (date) =>
-                      availableDates.some((d) => d === format(date, "yyyy-MM-dd")),
-                  }}
-                  modifiersClassNames={{
-                    hasData:
-                      "font-bold rounded-md !bg-green-100 text-green-800 aria-selected:!bg-green-900 aria-selected:!text-white",
-                  }}
-                />
+              {showCalendar && (
+                <div className="absolute top-full left-0 mt-2 w-auto bg-white rounded-xl shadow-2xl border border-gray-100 z-50 overflow-hidden">
+                  <Calendar
+                    mode="single"
+                    selected={new Date(selectedDate)}
+                    onSelect={(date) => {
+                      if (date) {
+                        setSelectedDate(format(date, "yyyy-MM-dd"));
+                        setShowCalendar(false);
+                      }
+                    }}
+                    modifiers={{
+                      hasData: (date) =>
+                        availableDates.some((d) => d === format(date, "yyyy-MM-dd")),
+                    }}
+                    modifiersClassNames={{
+                      hasData:
+                        "font-bold rounded-md !bg-green-100 text-green-800 aria-selected:!bg-green-900 aria-selected:!text-white",
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Session picker — shown when measurement runs exist for the day */}
+            {sessions.length > 0 && (
+              <div className="mt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">
+                  Jízda
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    onClick={() => onSessionChange(null)}
+                    className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                      selectedSession === null
+                        ? "bg-blue-600 text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                  >
+                    Vše
+                  </button>
+                  {sessions.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => onSessionChange(s.id)}
+                      className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                        selectedSession === s.id
+                          ? "bg-blue-600 text-white"
+                          : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {format(new Date(s.started_at), "HH:mm")}–{format(new Date(s.ended_at), "HH:mm")}
+                      <span className="ml-1 opacity-60">
+                        ({s.measurement_count.toLocaleString("cs-CZ")})
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
-          </div>
+          </>
         )}
 
         {isLiveMode && (

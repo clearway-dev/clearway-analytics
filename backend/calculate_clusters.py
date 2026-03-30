@@ -25,7 +25,7 @@ if not os.getenv("DATABASE_URL"):
 
 import logging
 import traceback
-from datetime import date
+from datetime import date, timedelta
 
 import numpy as np
 from sklearn.cluster import DBSCAN
@@ -80,7 +80,8 @@ def compute_for_date(target_date: date) -> None:
             func.ST_X(CleanedMeasurement.geom).label("lon"),
             CleanedMeasurement.cleaned_width,
         ).filter(
-            func.date(CleanedMeasurement.created_at) == target_date,
+            CleanedMeasurement.created_at >= target_date,
+            CleanedMeasurement.created_at < target_date + timedelta(days=1),
             CleanedMeasurement.cleaned_width < WIDTH_THRESHOLD_CM,
         ).all()
 
