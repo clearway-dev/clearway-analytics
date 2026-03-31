@@ -152,6 +152,8 @@ def main() -> None:
         compute_for_date(target)
         return
 
+    today = date.today()
+
     db = SessionLocal()
     try:
         measurement_dates = get_measurement_dates(db)
@@ -159,7 +161,7 @@ def main() -> None:
     finally:
         db.close()
 
-    pending = sorted(measurement_dates - cluster_dates)
+    pending = sorted((measurement_dates - cluster_dates) | ({today} & measurement_dates))
 
     if not pending:
         log.info("All dates already have clusters. Use --all to force recompute.")
