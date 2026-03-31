@@ -7,14 +7,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".
 
 from fastmcp import FastMCP
 from sqlalchemy import inspect, text, func
-from sqlalchemy.exc import IntegrityError
 from app.database import engine, SessionLocal
 from app.services.analytics_service import AnalyticsService
 from app.services.dashboard_service import DashboardService
 from app.services.ml_service import MLService
 from app.models import (
     SegmentStatistics, TargetVehicle, RoadSegment,
-    Station, Cluster, CleanedMeasurement,
+    Station, Cluster,
 )
 from app.api.endpoints.routing import _find_edge_snap
 from datetime import datetime, date
