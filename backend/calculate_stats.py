@@ -66,7 +66,11 @@ def main() -> None:
         return
 
     # -- Catch-up mode: find and fill all missing dates ---------------------
+    # Today is always recomputed (data may still be arriving during an active session).
+    # Historical dates that already have statistics are skipped.
     log.info("Catch-up mode: scanning for dates with missing statistics...")
+
+    today = date.today()
 
     db = SessionLocal()
     try:
@@ -75,14 +79,14 @@ def main() -> None:
     finally:
         db.close()
 
-    missing = sorted(measurement_dates - stats_dates)
+    missing = sorted((measurement_dates - stats_dates) | ({today} & measurement_dates))
 
     if not missing:
         log.info("All measurement dates already have statistics. Nothing to do.")
         return
 
     log.info(
-        "Found %d date(s) with measurements but no statistics: %s",
+        "Found %d date(s) to process: %s",
         len(missing),
         ", ".join(str(d) for d in missing),
     )
