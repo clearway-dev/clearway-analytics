@@ -102,7 +102,7 @@ RawMeasurement → CleanedMeasurement → SegmentStatistics → API → Frontend
 - **`database.py`** — DB connection/session
 - **`services/analytics_service.py`** — Spatial join: measurements → road segments, daily stats
 - **`services/dashboard_service.py`** — KPI aggregations for admin dashboard
-- **`services/ml_service.py`** — DBSCAN obstacle detection (5m radius, min 5 samples)
+- **`services/ml_service.py`** — DBSCAN obstacle detection (reads pre-computed clusters)
 - **`mcp/server.py`** — FastMCP server; exposes 5 tools:
   - `list_tables` — list all DB tables
   - `run_read_only_sql` — execute SELECT queries (restricted to SELECT only)
@@ -135,7 +135,7 @@ RawMeasurement → CleanedMeasurement → SegmentStatistics → API → Frontend
 ### Key Business Logic
 
 - **Passability threshold**: 3.0 m average width — segments below this are critical
-- **Obstacle detection**: DBSCAN clustering on CleanedMeasurements with narrow readings; haversine distance metric
+- **Obstacle detection**: DBSCAN clustering on CleanedMeasurements with narrow readings; `metric='haversine'`, `eps=5 m` (in radians: `5/6_371_000`), `min_samples=5`; computed by `calculate_clusters.py`
 - **Routing**: pgRouting `pgr_dijkstra` on road network topology built from OSM segments
 - **CRS**: EPSG:4326 stored in DB, EPSG:3857 used for metric spatial operations
 - **API responses**: GeoJSON with `[lon, lat]` ordering (Leaflet expects `[lat, lon]` — conversion happens in frontend)

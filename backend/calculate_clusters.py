@@ -44,9 +44,10 @@ log = logging.getLogger(__name__)
 
 # ── DBSCAN parameters ────────────────────────────────────────────────────────
 WIDTH_THRESHOLD_CM = 300.0        # only narrow measurements feed into clustering
-EPSILON_M          = 10.0         # cluster radius in metres
-MIN_SAMPLES        = 4            # minimum points to form a cluster
-EPSILON            = EPSILON_M / 111_320.0  # degrees (≈ equatorial approximation)
+EPSILON_M          = 5.0          # cluster radius in metres
+MIN_SAMPLES        = 5            # minimum points to form a cluster
+EARTH_RADIUS_M     = 6_371_000.0
+EPSILON            = EPSILON_M / EARTH_RADIUS_M  # radians (for haversine metric)
 
 
 def _severity(avg_width_m: float) -> str:
@@ -93,10 +94,11 @@ def compute_for_date(target_date: date) -> None:
             db.commit()
             return
 
-        coords = np.array([(r.lat, r.lon) for r in results])
+        # haversine metric requires coordinates in radians, order [lat, lon]
+        coords = np.radians([(r.lat, r.lon) for r in results])
         widths  = np.array([r.cleaned_width for r in results])
 
-        dbscan = DBSCAN(eps=EPSILON, min_samples=MIN_SAMPLES, metric="euclidean")
+        dbscan = DBSCAN(eps=EPSILON, min_samples=MIN_SAMPLES, metric="haversine")
         labels = dbscan.fit_predict(coords)
 
         # Build cluster records (skip noise label = -1)
@@ -104,10 +106,10 @@ def compute_for_date(target_date: date) -> None:
         for label in set(labels):
             if label == -1:
                 continue
-            mask   = labels == label
-            pts    = coords[mask]
-            ws     = widths[mask]
-            centroid = np.mean(pts, axis=0)
+            mask     = labels == label
+            pts      = coords[mask]           # radians [lat, lon]
+            ws       = widths[mask]
+            centroid = np.degrees(np.mean(pts, axis=0))  # back to degrees [lat, lon]
             avg_w_m  = float(np.mean(ws)) / 100.0
             min_w_m  = float(np.min(ws))  / 100.0
             max_w_m  = float(np.max(ws))  / 100.0
