@@ -172,3 +172,186 @@ def test_dbscan_detects_exactly_one_obstacle_cluster(client, obstacle_measuremen
     props = features[0]["properties"]
     assert props["severity"] == "critical"
     assert props["cluster_size"] == _CLUSTER_SIZE
+
+
+# ---------------------------------------------------------------------------
+# 4. Road segments in bbox — core map endpoint
+# ---------------------------------------------------------------------------
+
+# Bounding box covering central Plzeň — the golden DB contains OSM segments here.
+_PLZEN_BBOX = {
+    "min_lat": 49.74,
+    "min_lon": 13.37,
+    "max_lat": 49.76,
+    "max_lon": 13.39,
+}
+
+# Bounding box in the middle of the Atlantic Ocean — no road segments expected.
+_OCEAN_BBOX = {
+    "min_lat": -1.0,
+    "min_lon": -1.0,
+    "max_lat": 1.0,
+    "max_lon": 1.0,
+}
+
+
+def test_bbox_returns_geojson_feature_collection(client):
+    """
+    GET /api/maps/bbox with a bbox covering central Plzeň must return a valid
+    GeoJSON FeatureCollection with at least one road segment, each having the
+    expected structure (id, geometry, properties with avg_width and name).
+    """
+    response = client.get("/api/maps/bbox", params=_PLZEN_BBOX)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["type"] == "FeatureCollection"
+    features = body["features"]
+    assert len(features) > 0
+
+    first = features[0]
+    assert "id" in first
+    assert first["type"] == "Feature"
+    assert "geometry" in first
+    props = first["properties"]
+    assert "name" in props
+    assert "avg_width" in props
+
+
+def test_bbox_outside_road_network_returns_empty_features(client):
+    """
+    GET /api/maps/bbox with a bbox in the open ocean must return HTTP 200
+    with an empty features list — absence of data is not an error.
+    """
+    response = client.get("/api/maps/bbox", params=_OCEAN_BBOX)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["type"] == "FeatureCollection"
+    assert body["features"] == []
+
+
+# ---------------------------------------------------------------------------
+# 5. Route calculation — pgRouting / Dijkstra
+# ---------------------------------------------------------------------------
+
+# Two real locations in central Plzeň that lie on the seeded road network.
+_ROUTE_START = {"lat": 49.7477, "lon": 13.3777}  # near náměstí Republiky
+_ROUTE_END = {"lat": 49.7520, "lon": 13.3850}    # Lochotín direction
+
+
+def test_route_between_two_plzen_points_returns_ok(client):
+    """
+    POST /api/routing/route with two distinct points on the Plzeň road network
+    must return status "ok", a non-empty GeoJSON route, and a positive total
+    distance. This also implicitly verifies that the pgRouting topology built
+    from OSM data is intact.
+    """
+    response = client.post(
+        "/api/routing/route",
+        json={
+            "start_lat": _ROUTE_START["lat"],
+            "start_lon": _ROUTE_START["lon"],
+            "end_lat": _ROUTE_END["lat"],
+            "end_lon": _ROUTE_END["lon"],
+            "vehicle_width_cm": 200.0,
+        },
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ok"
+    assert len(body["route"]["features"]) > 0
+    assert body["total_distance_m"] > 0
+
+
+def test_route_with_same_start_and_end_returns_no_route(client):
+    """
+    POST /api/routing/route with identical start and end coordinates must
+    return HTTP 200 with status "no_route" — not an error, just an explicit
+    signal that the points are at the same location.
+    """
+    response = client.post(
+        "/api/routing/route",
+        json={
+            "start_lat": _ROUTE_START["lat"],
+            "start_lon": _ROUTE_START["lon"],
+            "end_lat": _ROUTE_START["lat"],
+            "end_lon": _ROUTE_START["lon"],
+            "vehicle_width_cm": 200.0,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "no_route"
+
+
+def test_route_outside_road_network_returns_404(client):
+    """
+    POST /api/routing/route with coordinates in the open ocean (no road network
+    nearby) must return HTTP 404, confirming the application explicitly detects
+    and communicates this situation to the caller.
+    """
+    response = client.post(
+        "/api/routing/route",
+        json={
+            "start_lat": 0.0,
+            "start_lon": 0.0,
+            "end_lat": 1.0,
+            "end_lon": 1.0,
+            "vehicle_width_cm": 200.0,
+        },
+    )
+
+    assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# 6. Obstacle bbox filtering
+# ---------------------------------------------------------------------------
+
+def test_obstacles_bbox_containing_cluster_returns_one_result(client, obstacle_measurements):
+    """
+    GET /api/analytics/obstacles with a bbox that contains the pre-computed
+    test cluster must return exactly one feature with the correct attributes.
+    """
+    # Tight bbox around the cluster centroid (_BASE_LAT, _BASE_LON)
+    response = client.get(
+        "/api/analytics/obstacles",
+        params={
+            "target_date": str(_TEST_DATE),
+            "min_lon": _BASE_LON - 0.01,
+            "min_lat": _BASE_LAT - 0.01,
+            "max_lon": _BASE_LON + 0.01,
+            "max_lat": _BASE_LAT + 0.01,
+        },
+    )
+
+    assert response.status_code == 200
+    features = response.json()["features"]
+    assert len(features) == 1
+    props = features[0]["properties"]
+    assert props["severity"] == "critical"
+    assert props["cluster_size"] == _CLUSTER_SIZE
+
+
+def test_obstacles_bbox_excluding_cluster_returns_empty(client, obstacle_measurements):
+    """
+    GET /api/analytics/obstacles with a bbox shifted far away from the test
+    cluster must return an empty features list, confirming the spatial filter
+    works correctly.
+    """
+    # Bbox far from the cluster — somewhere in the Atlantic Ocean
+    response = client.get(
+        "/api/analytics/obstacles",
+        params={
+            "target_date": str(_TEST_DATE),
+            "min_lon": -10.0,
+            "min_lat": -10.0,
+            "max_lon": -9.0,
+            "max_lat": -9.0,
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.json()["features"] == []

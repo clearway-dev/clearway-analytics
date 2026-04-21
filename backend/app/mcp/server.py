@@ -720,13 +720,13 @@ def find_passable_route(
                 rs.source,
                 rs.target,
                 CASE
-                    WHEN ss.avg_width IS NULL     THEN ST_Length(rs.geom::geography)
-                    WHEN ss.avg_width < {width}   THEN 9999999
+                    WHEN ss.min_width IS NULL     THEN ST_Length(rs.geom::geography)
+                    WHEN ss.min_width < {width}   THEN 9999999
                     ELSE                               ST_Length(rs.geom::geography)
                 END AS cost,
                 CASE
-                    WHEN ss.avg_width IS NULL     THEN ST_Length(rs.geom::geography)
-                    WHEN ss.avg_width < {width}   THEN 9999999
+                    WHEN ss.min_width IS NULL     THEN ST_Length(rs.geom::geography)
+                    WHEN ss.min_width < {width}   THEN 9999999
                     ELSE                               ST_Length(rs.geom::geography)
                 END AS reverse_cost
             FROM road_segments rs
