@@ -1,0 +1,6 @@
+scenario,label,n,mean_ms,median_ms,p95_ms,min_ms,max_ms
+route_short,"Krátká trasa (~500 m, centrum Plzně)",30,338.33,309.46,484.05,243.79,806.59
+route_long,"Dlouhá trasa (~3 km, Plzeň jih–sever)",30,276.60,261.16,366.97,229.57,406.04
+route_wide_vehicle,"Trasa – široké vozidlo (500 cm), cenová funkce aktivní",30,276.34,275.99,339.16,213.92,372.05
+bbox_small,"BBox malý (~0.5 km², centrum)",30,109.75,82.28,135.78,68.46,732.99
+bbox_large,BBox velký (~celý dataset Plzně),30,970.61,923.51,1212.17,398.64,2673.13

@@ -109,16 +109,16 @@ def find_route(body: RouteRequest, db: Session = Depends(get_db)):
             rs.source,
             rs.target,
             CASE
-                WHEN ss.avg_width IS NULL
+                WHEN ss.min_width IS NULL
                     THEN ST_Length(rs.geom::geography)
-                WHEN ss.avg_width < {width}
+                WHEN ss.min_width < {width}
                     THEN 9999999
                 ELSE ST_Length(rs.geom::geography)
             END AS cost,
             CASE
-                WHEN ss.avg_width IS NULL
+                WHEN ss.min_width IS NULL
                     THEN ST_Length(rs.geom::geography)
-                WHEN ss.avg_width < {width}
+                WHEN ss.min_width < {width}
                     THEN 9999999
                 ELSE ST_Length(rs.geom::geography)
             END AS reverse_cost
@@ -219,7 +219,7 @@ def find_route(body: RouteRequest, db: Session = Depends(get_db)):
                 "type": "Feature",
                 "properties": {
                     "seq": row.seq,
-                    "name": row.name,
+                    "name": row.name if row.name and row.name != "nan" else None,
                     "avg_width": row.avg_width,
                     "segment_cost_m": round(row.cost, 2) if row.cost < 9999999 else None,
                 },

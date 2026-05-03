@@ -120,7 +120,7 @@ async def get_road_segments(
             "geometry": json.loads(row.geometry),
             "properties": {
                 "segment_id": str(row.id),
-                "name": row.name or "Unknown Road",
+                "name": row.name if row.name and row.name != "nan" else None,
                 "avg_width": row.avg_width,
                 "min_width": row.min_width,
                 "max_width": row.max_width,
@@ -174,7 +174,7 @@ async def search_roads(q: str, db: Session = Depends(get_db)):
     return [
         {
             "id": str(row.id),
-            "name": row.name,
+            "name": row.name if row.name and row.name != "nan" else None,
             "center_lat": row.lat,
             "center_lon": row.lon
         }
@@ -266,7 +266,7 @@ def _build_export_rows(results, mode: str):
         rows.append({
             "segment_id": str(row.id),
             "osm_id": row.osm_id,
-            "name": row.name or "Unknown Road",
+            "name": row.name if row.name and row.name != "nan" else None,
             "road_type": row.road_type,
             "avg_width": avg,
             "min_width": row.min_width,

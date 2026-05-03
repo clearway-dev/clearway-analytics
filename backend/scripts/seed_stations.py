@@ -107,7 +107,7 @@ STATIONS = [
         "notes": "fn:plzen-lochotin",
     },
     # ------------------------------------------------------------------
-    # Policie České republiky — obvodní oddělení (dispatch patrol cars 24/7)
+    # Czech Police — district stations (dispatch patrol cars 24/7)
     # Source: policie.gov.cz
     # ------------------------------------------------------------------
     {
