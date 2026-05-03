@@ -219,7 +219,7 @@ def find_route(body: RouteRequest, db: Session = Depends(get_db)):
                 "type": "Feature",
                 "properties": {
                     "seq": row.seq,
-                    "name": row.name,
+                    "name": row.name if row.name and row.name != "nan" else None,
                     "avg_width": row.avg_width,
                     "segment_cost_m": round(row.cost, 2) if row.cost < 9999999 else None,
                 },

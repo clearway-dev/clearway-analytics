@@ -1,62 +1,62 @@
 # ClearWay Frontend — Design Guide
 
-Tento dokument popisuje design intention aplikace ClearWay Analytics. Při refaktorování nebo přidávání nových UI prvků vždy vycházej z těchto pravidel.
+This document describes the design intentions of the ClearWay Analytics application. When refactoring or adding new UI elements, always follow these rules.
 
-Referenční implementace:
-- `src/components/FloatingPanel.tsx` — panel na homepage (mapa)
-- `src/pages/AdminPage.tsx` — controls karta na dashboardu
+Reference implementations:
+- `src/components/FloatingPanel.tsx` — panel on the homepage (map)
+- `src/pages/AdminPage.tsx` — controls card on the dashboard
 
 ---
 
 ## Foundations
 
-### Barvy
-- **Primární:** `blue-500` (#3b82f6), `blue-600` (#2563eb) pro aktivní/hover stavy
-- **Pozadí stránky:** `bg-gray-50/50`
-- **Karty:** `bg-white`
-- **Texty:** `text-gray-900` (nadpisy), `text-gray-700` (tělo), `text-gray-500` (popisky), `text-gray-400` (placeholder/ikony)
-- **Hranice:** `border-gray-200`, `border-gray-100` (subtilnější dělítka)
-- **Chyby / kritické:** `text-red-500`, `bg-red-50`
-- **Úspěch / průjezdné:** `text-green-500` (#22c55e), `bg-green-100`
+### Colours
+- **Primary:** `blue-500` (#3b82f6), `blue-600` (#2563eb) for active/hover states
+- **Page background:** `bg-gray-50/50`
+- **Cards:** `bg-white`
+- **Text:** `text-gray-900` (headings), `text-gray-700` (body), `text-gray-500` (labels), `text-gray-400` (placeholders/icons)
+- **Borders:** `border-gray-200`, `border-gray-100` (subtle dividers)
+- **Errors / critical:** `text-red-500`, `bg-red-50`
+- **Success / passable:** `text-green-500` (#22c55e), `bg-green-100`
 
-### Typografie
-- **Nadpis stránky:** `text-2xl font-bold tracking-tight text-gray-900`
-- **Nadpis sekce v kartě:** `text-sm font-semibold` (přes `CardTitle`)
-- **Label nad ovládacím prvkem:** `text-xs font-semibold text-gray-500 uppercase tracking-wider`
-- **Tělo / hodnoty:** `text-sm text-gray-700`
-- **KPI hlavní číslo:** `text-lg font-bold text-gray-900 leading-tight`
-- **KPI doplňující info:** `text-xs text-gray-400` — na stejném řádku jako hlavní číslo (`flex items-baseline gap-1.5`)
-- **Min/max popisky slideru:** `text-[10px] text-gray-400`
+### Typography
+- **Page heading:** `text-2xl font-bold tracking-tight text-gray-900`
+- **Section heading inside card:** `text-sm font-semibold` (via `CardTitle`)
+- **Label above control:** `text-xs font-semibold text-gray-500 uppercase tracking-wider`
+- **Body / values:** `text-sm text-gray-700`
+- **KPI primary number:** `text-lg font-bold text-gray-900 leading-tight`
+- **KPI supplementary info:** `text-xs text-gray-400` — on the same line as the primary number (`flex items-baseline gap-1.5`)
+- **Slider min/max labels:** `text-[10px] text-gray-400`
 
-### Mezery
-- **Padding stránky:** `p-6`
-- **Padding karty (CardContent):** `p-4`
-- **Gap mezi sekcemi:** `gap-4`
-- **Gap uvnitř sekce:** `gap-2` nebo `gap-1.5`
+### Spacing
+- **Page padding:** `p-6`
+- **Card padding (CardContent):** `p-4`
+- **Gap between sections:** `gap-4`
+- **Gap within a section:** `gap-2` or `gap-1.5`
 
 ---
 
-## Komponenty
+## Components
 
-### Karta (Card)
+### Card
 ```
 rounded-xl border border-gray-200 bg-white shadow-sm
 ```
-- Vždy `rounded-xl`, nikdy `rounded-md` nebo `rounded-lg` pro karty
-- `CardHeader` s `p-4 pb-2`, `CardContent` s `p-4 pt-0`
-- Ikona v headeru: `h-4 w-4 text-gray-400 shrink-0`
+- Always `rounded-xl`, never `rounded-md` or `rounded-lg` for cards
+- `CardHeader` with `p-4 pb-2`, `CardContent` with `p-4 pt-0`
+- Icon in header: `h-4 w-4 text-gray-400 shrink-0`
 
-### Floating panel (absolutně pozicovaný)
+### Floating panel (absolutely positioned)
 ```
 absolute top-4 left-4 z-[1000]
 bg-white p-4 rounded-xl shadow-lg border border-gray-100
 w-80 max-w-[90vw]
 ```
 
-### Label nad ovládacím prvkem
+### Label above a control
 ```tsx
 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
-  Název sekce
+  Section name
 </label>
 ```
 
@@ -65,8 +65,8 @@ w-80 max-w-[90vw]
 border border-gray-200 rounded-lg text-sm bg-white text-gray-700
 focus:outline-none focus:ring-2 focus:ring-blue-500
 ```
-- Select s ikonou vpravo: `appearance-none pl-3 pr-8 py-2` + absolutně pozicovaná ikona `pointer-events-none`
-- Ikona v selectu: `ChevronDown` nebo `CalendarIcon`, `w-4 h-4 text-gray-400`
+- Select with icon on the right: `appearance-none pl-3 pr-8 py-2` + absolutely positioned icon `pointer-events-none`
+- Icon inside select: `ChevronDown` or `CalendarIcon`, `w-4 h-4 text-gray-400`
 
 ### Slider
 ```tsx
@@ -75,8 +75,8 @@ focus:outline-none focus:ring-2 focus:ring-blue-500
   className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
 />
 ```
-- Vždy doprovázet `flex justify-between text-[10px] text-gray-400 mt-1` s min/max popisky
-- Vedle slideru: bordered box s hodnotou a jednotkou:
+- Always accompanied by `flex justify-between text-[10px] text-gray-400 mt-1` with min/max labels
+- Next to the slider: bordered box with value and unit:
 ```tsx
 <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden shrink-0">
   <span className="w-10 px-2 py-1.5 text-sm text-right text-gray-700">{value}</span>
@@ -84,112 +84,112 @@ focus:outline-none focus:ring-2 focus:ring-blue-500
 </div>
 ```
 
-### Pill toggle (2 možnosti)
+### Pill toggle (2 options)
 ```tsx
 <div className="flex bg-gray-100 p-1 rounded-lg">
   <button className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
     active ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
   }`}>
-    Možnost A
+    Option A
   </button>
   <button className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-all ${
     !active ? "bg-white text-blue-600 shadow-sm" : "text-gray-500 hover:text-gray-700"
   }`}>
-    Možnost B
+    Option B
   </button>
 </div>
 ```
-- Aktivní stav: `bg-white text-blue-600 shadow-sm` (bílá na šedém pozadí)
-- Neaktivní: `text-gray-500 hover:text-gray-700`
+- Active state: `bg-white text-blue-600 shadow-sm` (white on grey background)
+- Inactive: `text-gray-500 hover:text-gray-700`
 
-### Tlačítko — primární
+### Button — primary
 ```
 bg-blue-600 text-white hover:bg-blue-700 rounded-lg text-sm font-medium py-2 px-4
 ```
 
-### Tlačítko — sekundární / ghost
+### Button — secondary / ghost
 ```
 bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-lg text-sm font-medium py-2 px-4
 ```
 
-### Loading overlay (přes mapu nebo komponentu)
+### Loading overlay (over map or component)
 ```tsx
 <div className="absolute inset-0 z-[1000] flex items-center justify-center bg-white/70 backdrop-blur-sm pointer-events-none">
   <div className="flex items-center gap-2 text-gray-600 text-xs font-medium">
     <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
-    Načítám…
+    Loading…
   </div>
 </div>
 ```
-- Na hlavní mapě: centrovaný modal s `bg-white/80 backdrop-blur-md px-8 py-6 rounded-2xl shadow-xl` a větším spinnerem `h-10 w-10`
+- On the main map: centred modal with `bg-white/80 backdrop-blur-md px-8 py-6 rounded-2xl shadow-xl` and a larger spinner `h-10 w-10`
 
-### Loading inline (tabulka, seznam)
+### Loading inline (table, list)
 ```tsx
 <div className="flex items-center justify-center gap-2 p-6 text-sm text-gray-500">
   <Loader2 className="animate-spin h-4 w-4 text-blue-500" />
-  Načítám…
+  Loading…
 </div>
 ```
 
 ---
 
-## Mapy
+## Maps
 
-### Passability mapa (hlavní mapa)
-- Průjezdné segmenty: `#2ecc71` (zelená)
-- Kritické segmenty: `#e74c3c` (červená)
-- Bez dat: `#aaaaaa` (šedá), `weight: 2, opacity: 0.5`
-- Průjezdné / kritické: `weight: 4, opacity: 0.9`
+### Passability map (main map)
+- Passable segments: `#2ecc71` (green)
+- Critical segments: `#e74c3c` (red)
+- No data: `#aaaaaa` (grey), `weight: 2, opacity: 0.5`
+- Passable / critical: `weight: 4, opacity: 0.9`
 - Tile layer: CartoDB Voyager
 
-### Coverage heatmapa (dashboard)
-- Nízké pokrytí (≤ 20): `#fde047` (žlutá)
-- Střední pokrytí (21–100): `#f97316` (oranžová)
-- Vysoké pokrytí (> 100): `#ef4444` (červená)
+### Coverage heatmap (dashboard)
+- Low coverage (≤ 20): `#fde047` (yellow)
+- Medium coverage (21–100): `#f97316` (orange)
+- High coverage (> 100): `#ef4444` (red)
 - Tile layer: CartoDB Light
 
-### Floating legenda na mapě
+### Floating map legend
 ```
 absolute top-2 left-2 z-[1000]
 bg-white/90 backdrop-blur-sm rounded-lg shadow-md text-xs
 ```
-- Collapsible přes `max-height` transition: `transition-all duration-200 ease-in-out`
-- Toggle ikona: `ChevronUp` / `ChevronDown`, `h-3 w-3 text-gray-400`
+- Collapsible via `max-height` transition: `transition-all duration-200 ease-in-out`
+- Toggle icon: `ChevronUp` / `ChevronDown`, `h-3 w-3 text-gray-400`
 
 ---
 
 ## Layout
 
-### Stránka s mapou (fullscreen)
-- Mapa zabírá `h-full w-full`, stránka `overflow-hidden`
-- Floating panel absolutně pozicovaný nad mapou `z-[1000]`
+### Map page (fullscreen)
+- Map occupies `h-full w-full`, page uses `overflow-hidden`
+- Floating panel absolutely positioned over the map `z-[1000]`
 
-### Dashboard stránka
-- Levý sloupec `w-1/3`: controls + KPI karty + tabulka (scrollable)
-- Pravý sloupec `flex-1`: mapa nebo hlavní vizualizace (h-full)
-- Spodní sekce přes celou šířku pod hlavním obsahem
+### Dashboard page
+- Left column `w-1/3`: controls + KPI cards + table (scrollable)
+- Right column `flex-1`: map or main visualisation (h-full)
+- Bottom section spanning full width below the main content
 
-### Sidebar navigace
-- Šířka `w-64`, `bg-white border-r border-gray-200`
-- NavLink aktivní: `bg-blue-50 text-blue-600`
-- NavLink neaktivní: `text-gray-600 hover:bg-gray-50 hover:text-gray-900`
-
----
-
-## Ikony
-
-Používáme výhradně `lucide-react`. Standardní velikosti:
-- V navigaci: `w-5 h-5`
-- V kartách / labelech: `h-4 w-4`
-- V legendě / malé UI prvky: `h-3 w-3` nebo `h-3.5 w-3.5`
-- Spinner: `animate-spin` + výše uvedené velikosti
+### Sidebar navigation
+- Width `w-64`, `bg-white border-r border-gray-200`
+- Active NavLink: `bg-blue-50 text-blue-600`
+- Inactive NavLink: `text-gray-600 hover:bg-gray-50 hover:text-gray-900`
 
 ---
 
-## Co nedělat
+## Icons
 
-- Nepoužívat `rounded-md` pro karty (pouze `rounded-xl`)
-- Nepoužívat inline `style={}` pro barvy — vždy Tailwind třídy nebo Tailwind arbitrary values `bg-[#hex]`
-- Nepoužívat vlastní SVG spinnery — vždy `<Loader2 className="animate-spin" />`
-- Nepoužívat červenou pro "hodně dat" na heatmapě — červená = problém/kritický stav
-- Neskládat doplňující KPI info na nový řádek — dát na stejný řádek jako hlavní hodnotu (`flex items-baseline`)
+Use exclusively `lucide-react`. Standard sizes:
+- In navigation: `w-5 h-5`
+- In cards / labels: `h-4 w-4`
+- In legend / small UI elements: `h-3 w-3` or `h-3.5 w-3.5`
+- Spinner: `animate-spin` + sizes above
+
+---
+
+## What Not to Do
+
+- Do not use `rounded-md` for cards (use `rounded-xl` only)
+- Do not use inline `style={}` for colours — always use Tailwind classes or arbitrary values `bg-[#hex]`
+- Do not use custom SVG spinners — always use `<Loader2 className="animate-spin" />`
+- Do not use red for "high data density" on the heatmap — red means problem/critical state
+- Do not wrap supplementary KPI info onto a new line — keep it on the same line as the primary value (`flex items-baseline`)

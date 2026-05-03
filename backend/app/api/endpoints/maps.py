@@ -108,7 +108,7 @@ async def get_segments_in_bbox(
                 "type": "Feature",
                 "id": str(row.id),
                 "properties": {
-                    "name": row.name,
+                    "name": row.name if row.name and row.name != "nan" else None,
                     "avg_width": row.avg_width,
                     "min_width": row.min_width,
                     "measurements_count": row.measurements_count,

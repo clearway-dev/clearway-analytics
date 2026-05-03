@@ -22,30 +22,30 @@ async def run_client():
     Connects to the ClearWay MCP server via SSE, lists available tools,
     and executes a test call to the 'get_daily_analytics' tool.
     """
-    logger.info(f"🔌 Connecting to MCP server at: {MCP_SERVER_URL}...")
+    logger.info(f"Connecting to MCP server at: {MCP_SERVER_URL}...")
 
     try:
         # Establish SSE connection
         async with sse_client(MCP_SERVER_URL) as (read_stream, write_stream):
-            logger.info("✅ SSE connection established. Initializing session...")
+            logger.info("SSE connection established. Initializing session...")
             
             async with ClientSession(read_stream, write_stream) as session:
                 # 1. Initialize session
                 await session.initialize()
-                logger.info("🚀 Session successfully initialized.")
+                logger.info("Session successfully initialized.")
 
                 # 2. List available tools
                 logger.info("Fetching available tools...")
                 tools = await session.list_tools()
                 
-                print("\n📋 Available Tools:")
+                print("\nAvailable Tools:")
                 for tool in tools.tools:
                     print(f"  - {tool.name}: {tool.description}")
                 print("-" * 50)
 
                 # 3. Test execution: get_daily_analytics
                 target_date = "2026-02-18"
-                logger.info(f"📞 Invoking tool 'get_daily_analytics' for date: {target_date}...")
+                logger.info(f"Invoking tool 'get_daily_analytics' for date: {target_date}...")
                 
                 try:
                     result = await session.call_tool(
@@ -54,7 +54,7 @@ async def run_client():
                     )
 
                     # 4. Display results
-                    print("\n💡 Server Response:")
+                    print("\nServer Response:")
                     for content in result.content:
                         if content.type == "text":
                             print(content.text)
@@ -65,7 +65,7 @@ async def run_client():
                     logger.error(f"Failed to execute tool: {e}")
 
                 # 5. Test execution: get_road_features_in_bbox
-                logger.info("🌍 Invoking tool 'get_road_features_in_bbox' (Pilsen Center)...")
+                logger.info("Invoking tool 'get_road_features_in_bbox' (Pilsen Center)...")
                 bbox_args = {
                     "min_lat": 49.740,
                     "min_lon": 13.370,
@@ -79,7 +79,7 @@ async def run_client():
                         arguments=bbox_args
                     )
                     
-                    print("\n💡 Bounding Box Results (truncated):")
+                    print("\nBounding Box Results (truncated):")
                     for content in bbox_result.content:
                         if content.type == "text":
                             print(content.text[:500] + "...")

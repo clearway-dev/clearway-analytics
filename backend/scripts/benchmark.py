@@ -224,7 +224,17 @@ def write_csv(results: list[ScenarioResult], path: str) -> None:
                 f"{r.minimum:.2f}",
                 f"{r.maximum:.2f}",
             ])
+
+    raw_path = path.replace(".csv", "_raw.csv")
+    with open(raw_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["scenario", "iteration", "ms"])
+        for r in results:
+            for i, ms in enumerate(r.samples_ms, start=1):
+                writer.writerow([r.name, i, f"{ms:.2f}"])
+
     print(f"\nVýsledky uloženy do: {path}")
+    print(f"Raw iterace uloženy do: {raw_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -233,14 +243,14 @@ def write_csv(results: list[ScenarioResult], path: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="ClearWay Analytics – benchmark klíčových endpointů",
+        description="ClearWay Analytics – benchmark key API endpoints",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=(
-            "Příklady:\n"
-            "  # lokální server\n"
+            "Examples:\n"
+            "  # local server\n"
             "  python scripts/benchmark.py --url http://localhost:8000 "
             "--email admin@clearway.test --password secret\n\n"
-            "  # produkce přes SSH tunel (port-forward)\n"
+            "  # production via SSH tunnel (port-forward)\n"
             "  ssh -L 8080:localhost:8000 vandl@77.42.45.121 -N &\n"
             "  python scripts/benchmark.py --url http://localhost:8080 "
             "--email admin@clearway.test --password secret --n 50\n"
