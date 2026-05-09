@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, GeoJSON, useMapEvents } from "react-leaflet";
 import type { LatLngTuple, Layer } from "leaflet";
 import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import apiClient from "../lib/api";
+import { roadName } from "../lib/utils";
 
 interface RoadProperties {
   name: string | null;
@@ -77,7 +78,7 @@ export default function RoadNetworkMap() {
     const widthLabel =
       avg_width != null ? `${avg_width.toFixed(2)} cm` : "Bez dat";
     layer.bindPopup(
-      `<strong>${name ?? "Neznámá ulice"}</strong><br/>Průměrná šířka: ${widthLabel}`
+      `<strong>${roadName(name)}</strong><br/>Průměrná šířka: ${widthLabel}`
     );
   };
 
