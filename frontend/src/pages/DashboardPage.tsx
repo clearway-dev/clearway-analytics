@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../lib/api";
+import { roadName } from "../lib/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
 import { Activity, Map, Ruler, AlertTriangle, ArrowRight, Loader2, CalendarIcon } from "lucide-react";
@@ -274,7 +275,7 @@ export default function DashboardPage() {
                     <TableBody>
                       {stats.anomalies.map((anomaly) => (
                         <TableRow key={anomaly.id}>
-                          <TableCell className="font-medium">{anomaly.name}</TableCell>
+                          <TableCell className="font-medium">{roadName(anomaly.name)}</TableCell>
                           <TableCell className={anomaly.min_width < appliedWidth ? "text-red-500 font-bold" : ""}>
                             {(anomaly.min_width / 100).toFixed(2)} m
                           </TableCell>

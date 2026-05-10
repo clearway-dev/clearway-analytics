@@ -1,6 +1,7 @@
 import { X } from "lucide-react";
 import type { SegmentData } from "./MapComponent";
 import WidthHistogram from "./WidthHistogram";
+import { roadName } from "../lib/utils";
 
 interface SegmentPanelProps {
   data: SegmentData | null;
@@ -28,7 +29,7 @@ export default function SegmentPanel({ data, onClose }: SegmentPanelProps) {
           {/* Header */}
           <div className="flex items-start justify-between mb-3 gap-2">
             <h2 className="text-base font-bold text-gray-800 leading-tight">
-              {data.name || "Neznámá ulice"}
+              {roadName(data.name)}
             </h2>
             <div className="flex items-center gap-2 shrink-0">
               <span

@@ -13,6 +13,7 @@ import type { Layer, Polyline } from "leaflet";
 import { Loader2 } from "lucide-react";
 import ObstacleLayer, { type ObstacleFeature } from "./ObstacleLayer";
 import apiClient from "../lib/api";
+import { roadName } from "../lib/utils";
 
 export interface SegmentData {
   segment_id: string;
@@ -203,7 +204,7 @@ export default function MapComponent({
         const center: LatLngTuple = [leafletCenter.lat, leafletCenter.lng];
         onSegmentSelect({
           segment_id: feature.id as string,
-          name: p.name ?? "Unknown Road",
+          name: roadName(p.name, "Neznámá ulice"),
           avg_width: avg,
           min_width: p.min_width,
           measurements_count: p.measurements_count,
