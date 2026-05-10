@@ -5,3 +5,5 @@ gemini.md
 deploy_key*
 
 .DS_Store
+
+.vscode

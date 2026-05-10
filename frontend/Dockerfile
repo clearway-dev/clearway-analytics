@@ -10,7 +10,7 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN npm ci --prefer-offline --no-audit
+RUN npm ci --prefer-offline --no-audit --legacy-peer-deps
 
 # Copy the rest of the application code
 COPY . .
@@ -20,4 +20,4 @@ EXPOSE 3000
 
 # Start the development server with install check
 # --host ensures it listens on all network interfaces inside the container
-CMD ["sh", "-c", "npm install && npm run dev -- --host"]
+CMD ["sh", "-c", "npm install --legacy-peer-deps && npm run dev -- --host"]
