@@ -67,7 +67,7 @@ def parse_vehicles_from_text(text: str) -> list[dict]:
     """
     client = _init_model()
     prompt = f"{_SYSTEM_PROMPT}\n\nText to parse:\n{text}"
-    response = client.models.generate_content(model="gemini-3.1-flash-lite-preview", contents=prompt)
+    response = client.models.generate_content(model="gemini-3.1-flash-lite", contents=prompt)
 
     raw = response.text.strip()
     # Strip markdown code fences if model wraps output despite instructions
