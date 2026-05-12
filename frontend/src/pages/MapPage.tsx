@@ -12,6 +12,7 @@ import { fetchAvailableDates, fetchObstacles, fetchSessions } from "../services/
 import type { SessionInfo } from "../services/api";
 import type { GeoJsonObject } from "geojson";
 import apiClient from "../lib/api";
+import { DEFAULT_VEHICLE_WIDTH_CM } from "../lib/constants";
 
 export default function MapPage() {
   const [searchParams] = useSearchParams();
@@ -21,7 +22,7 @@ export default function MapPage() {
   const urlLon = searchParams.get("lon");
 
   const [selectedSegment, setSelectedSegment] = useState<SegmentData | null>(null);
-  const [vehicleWidth, setVehicleWidth] = useState<number>(250);
+  const [vehicleWidth, setVehicleWidth] = useState<number>(DEFAULT_VEHICLE_WIDTH_CM);
 
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     return urlDate || new Date().toISOString().split("T")[0];
@@ -127,7 +128,7 @@ export default function MapPage() {
     setRouteLoading(true);
     setRouteError(null);
     try {
-      const res = await apiClient.post("/api/routing/route", {
+      const res = await apiClient.post("/api/v1/routing/route", {
         start_lat: start[0],
         start_lon: start[1],
         end_lat: end[0],

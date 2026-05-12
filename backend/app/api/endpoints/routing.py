@@ -11,6 +11,9 @@ from app.database import get_db
 
 router = APIRouter()
 
+# Search radius for snapping a click coordinate to the nearest road edge.
+_SNAP_TO_ROAD_DEG = 0.005
+
 
 class RouteRequest(BaseModel):
     start_lat: float
@@ -29,13 +32,13 @@ def _find_edge_snap(conn, lon: float, lat: float):
     or (None, None).
     """
     row = conn.execute(
-        text("""
+        text(f"""
             SELECT edge_id, fraction
             FROM pgr_findCloseEdges(
                 'SELECT seq_id AS id, geom FROM road_segments
                  WHERE source IS NOT NULL AND target IS NOT NULL',
                 ST_SetSRID(ST_MakePoint(:lon, :lat), 4326),
-                0.005
+                {_SNAP_TO_ROAD_DEG}
             )
             LIMIT 1
         """),

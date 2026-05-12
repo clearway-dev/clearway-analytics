@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import apiClient from "../lib/api";
+import { PASSABILITY_THRESHOLD_CM } from "../lib/constants";
 
 interface HistrogramBin {
   range: string;
@@ -17,7 +18,7 @@ export default function WidthHistogram({ segmentId }: WidthHistogramProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiClient.get(`/api/stats/segment/${segmentId}/histogram`)
+    apiClient.get(`/api/v1/stats/segment/${segmentId}/histogram`)
       .then((res) => {
         const activeBins = res.data.filter((d: HistrogramBin) => d.count > 0);
         setData(activeBins);
@@ -73,7 +74,7 @@ export default function WidthHistogram({ segmentId }: WidthHistogramProps) {
             {data.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={entry.min < 300 ? "#f87171" : "#4ade80"}
+                fill={entry.min < PASSABILITY_THRESHOLD_CM ? "#f87171" : "#4ade80"}
               />
             ))}
           </Bar>

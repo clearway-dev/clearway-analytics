@@ -58,7 +58,7 @@ export default function UsersPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    apiClient.get<UserRecord[]>("/api/auth/users")
+    apiClient.get<UserRecord[]>("/api/v1/auth/users")
       .then((r) => { setUsers(r.data); setLoading(false); })
       .catch(() => { setPageError("Nepodařilo se načíst uživatele."); setLoading(false); });
   }, []);
@@ -102,10 +102,10 @@ export default function UsersPage() {
     setFormError(null);
     try {
       if (editingId) {
-        const res = await apiClient.put<UserRecord>(`/api/auth/users/${editingId}`, body);
+        const res = await apiClient.put<UserRecord>(`/api/v1/auth/users/${editingId}`, body);
         setUsers((prev) => prev.map((u) => (u.id === editingId ? res.data : u)));
       } else {
-        const res = await apiClient.post<UserRecord>("/api/auth/users", body);
+        const res = await apiClient.post<UserRecord>("/api/v1/auth/users", body);
         setUsers((prev) => [...prev, res.data].sort((a, b) => a.id - b.id));
       }
       setModalOpen(false);
@@ -121,7 +121,7 @@ export default function UsersPage() {
     if (!deleteId) return;
     setDeleting(true);
     try {
-      await apiClient.delete(`/api/auth/users/${deleteId}`);
+      await apiClient.delete(`/api/v1/auth/users/${deleteId}`);
       setUsers((prev) => prev.filter((u) => u.id !== deleteId));
     } catch (err: unknown) {
       const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;

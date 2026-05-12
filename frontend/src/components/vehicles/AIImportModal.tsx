@@ -74,11 +74,11 @@ export default function AIImportModal({ onVehiclesAdded, onClose }: AIImportModa
         // Send as multipart (PDF etc.)
         const form = new FormData();
         form.append("file", selectedFile);
-        const res = await apiClient.post<AIVehicleData[]>("/api/ai/parse-vehicle-file", form);
+        const res = await apiClient.post<AIVehicleData[]>("/api/v1/ai/parse-vehicle-file", form);
         data = res.data;
       } else {
         if (!text.trim()) { setError("Vložte text nebo nahrajte soubor."); return; }
-        const res = await apiClient.post<AIVehicleData[]>("/api/ai/parse-vehicle", { text });
+        const res = await apiClient.post<AIVehicleData[]>("/api/v1/ai/parse-vehicle", { text });
         data = res.data;
       }
 
@@ -109,7 +109,7 @@ export default function AIImportModal({ onVehiclesAdded, onClose }: AIImportModa
     try {
       const saved: AIVehicleData[] = [];
       for (const v of toAdd) {
-        const res = await apiClient.post("/api/vehicles/", {
+        const res = await apiClient.post("/api/v1/vehicles/", {
           name: v.name ?? "Neznámé vozidlo",
           category: v.category ?? null,
           width: v.width,

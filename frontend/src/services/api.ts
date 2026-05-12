@@ -22,7 +22,7 @@ export async function fetchExportPreview(
   if (targetDate) params.set("target_date", targetDate);
   if (fromDate) params.set("from_date", fromDate);
   if (toDate) params.set("to_date", toDate);
-  const res = await apiClient.get<ExportPreview>(`/api/export/preview?${params}`);
+  const res = await apiClient.get<ExportPreview>(`/api/v1/export/preview?${params}`);
   return res.data;
 }
 
@@ -39,7 +39,7 @@ export async function downloadSegmentExport(
   if (fromDate) params.set("from_date", fromDate);
   if (toDate) params.set("to_date", toDate);
 
-  const res = await apiClient.get(`/api/export/segments?${params}`, {
+  const res = await apiClient.get(`/api/v1/export/segments?${params}`, {
     responseType: "blob",
   });
 
@@ -68,7 +68,7 @@ export interface SessionInfo {
 
 export async function fetchSessions(targetDate: string): Promise<SessionInfo[]> {
   try {
-    const res = await apiClient.get<SessionInfo[]>(`/api/analytics/sessions?target_date=${targetDate}`);
+    const res = await apiClient.get<SessionInfo[]>(`/api/v1/analytics/sessions?target_date=${targetDate}`);
     return res.data;
   } catch {
     return [];
@@ -77,7 +77,7 @@ export async function fetchSessions(targetDate: string): Promise<SessionInfo[]> 
 
 export async function fetchObstacles(targetDate: string): Promise<import("../components/ObstacleLayer").ObstacleFeature[]> {
   try {
-    const res = await apiClient.get(`/api/analytics/obstacles?target_date=${targetDate}`);
+    const res = await apiClient.get(`/api/v1/analytics/obstacles?target_date=${targetDate}`);
     return res.data?.features ?? [];
   } catch {
     return [];
@@ -86,7 +86,7 @@ export async function fetchObstacles(targetDate: string): Promise<import("../com
 
 export async function fetchAvailableDates(): Promise<string[]> {
   try {
-    const res = await apiClient.get<{ dates: string[] }>("/api/dashboard/available-dates");
+    const res = await apiClient.get<{ dates: string[] }>("/api/v1/dashboard/available-dates");
     return res.data.dates;
   } catch {
     return [];

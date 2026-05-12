@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user
 from app.database import get_db
+from app.core.constants import SNAP_DISTANCE_DEG
 
 router = APIRouter()
 
@@ -42,7 +43,7 @@ async def get_segments_in_bbox(
                 CROSS JOIN LATERAL (
                     SELECT rs.id
                     FROM road_segments rs
-                    WHERE ST_DWithin(cm.geom, rs.geom, 0.00008983)
+                    WHERE ST_DWithin(cm.geom, rs.geom, :snap_deg)
                     ORDER BY cm.geom <-> rs.geom
                     LIMIT 1
                 ) rs
@@ -69,7 +70,7 @@ async def get_segments_in_bbox(
             WHERE rs.geom && ST_MakeEnvelope(:min_lon, :min_lat, :max_lon, :max_lat, 4326)
             LIMIT 15000
         """)
-        params = {**bbox_params, "session_id": session_id}
+        params = {**bbox_params, "session_id": session_id, "snap_deg": SNAP_DISTANCE_DEG}
     else:
         date_filter = (
             ":target_date"

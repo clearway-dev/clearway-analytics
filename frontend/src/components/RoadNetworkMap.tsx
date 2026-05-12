@@ -4,6 +4,7 @@ import type { LatLngTuple, Layer } from "leaflet";
 import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import apiClient from "../lib/api";
 import { roadName } from "../lib/utils";
+import { PASSABILITY_THRESHOLD_M } from "../lib/constants";
 
 interface RoadProperties {
   name: string | null;
@@ -50,7 +51,7 @@ export default function RoadNetworkMap() {
     try {
       const { min_lat, min_lon, max_lat, max_lon } = bbox;
       const res = await apiClient.get(
-        `/api/maps/bbox?min_lat=${min_lat}&min_lon=${min_lon}&max_lat=${max_lat}&max_lon=${max_lon}`
+        `/api/v1/maps/bbox?min_lat=${min_lat}&min_lon=${min_lon}&max_lat=${max_lat}&max_lon=${max_lon}`
       );
       dataKey.current += 1;
       setRoads(res.data);
@@ -67,7 +68,7 @@ export default function RoadNetworkMap() {
       return { color: "#888888", weight: 2, opacity: 0.6 };
     }
     return {
-      color: avgWidth < 3.0 ? "#e74c3c" : "#2ecc71",
+      color: avgWidth < PASSABILITY_THRESHOLD_M ? "#e74c3c" : "#2ecc71",
       weight: 4,
       opacity: 0.9,
     };
