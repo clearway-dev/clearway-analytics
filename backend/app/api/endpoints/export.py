@@ -9,39 +9,15 @@ import pandas as pd
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import Response, StreamingResponse
 from shapely.geometry import shape
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import Optional
 from datetime import date
 
 from app.database import get_db
-from app.models import RoadSegment, SegmentStatistics
+from app.services.export_service import ExportService
 from app.api.deps import get_current_active_user
-from app.core.constants import PASSABILITY_THRESHOLD_M
 
 router = APIRouter()
-
-
-def _build_export_rows(results, mode: str):
-    """Convert raw DB rows into a list of dicts ready for any export format."""
-    rows = []
-    for row in results:
-        avg = round(float(row.avg_width), 2) if row.avg_width is not None else None
-        rows.append({
-            "segment_id": str(row.id),
-            "osm_id": row.osm_id,
-            "name": row.name if row.name and row.name != "nan" else None,
-            "road_type": row.road_type,
-            "avg_width": avg,
-            "min_width": row.min_width,
-            "max_width": row.max_width,
-            "measurements_count": int(row.measurements_count) if row.measurements_count else 0,
-            "status": "ok" if (avg or 0) >= PASSABILITY_THRESHOLD_M else "narrow",
-            "date_from": str(row.date_from),
-            "date_to": str(row.date_to),
-            "geometry": row.geometry,
-        })
-    return rows
 
 
 @router.get("/preview", dependencies=[Depends(get_current_active_user)])
@@ -52,41 +28,8 @@ async def export_preview(
     to_date: Optional[date] = None,
     db: Session = Depends(get_db),
 ):
-    """
-    Returns segment count and date coverage for the given export configuration.
-    Used to show a live preview on the export page before downloading.
-    """
-    if mode == "single":
-        target = target_date or date.today()
-        count = db.query(func.count(SegmentStatistics.id)).filter(
-            SegmentStatistics.stat_date == target
-        ).scalar()
-        return {
-            "segment_count": count or 0,
-            "date_from": str(target),
-            "date_to": str(target),
-            "days_with_data": 1 if (count or 0) > 0 else 0,
-        }
-
-    q = db.query(
-        func.count(func.distinct(SegmentStatistics.segment_id)).label("segment_count"),
-        func.min(SegmentStatistics.stat_date).label("date_from"),
-        func.max(SegmentStatistics.stat_date).label("date_to"),
-        func.count(func.distinct(SegmentStatistics.stat_date)).label("days_with_data"),
-    )
-    if mode == "range":
-        if from_date:
-            q = q.filter(SegmentStatistics.stat_date >= from_date)
-        if to_date:
-            q = q.filter(SegmentStatistics.stat_date <= to_date)
-
-    result = q.one()
-    return {
-        "segment_count": result.segment_count or 0,
-        "date_from": str(result.date_from) if result.date_from else None,
-        "date_to": str(result.date_to) if result.date_to else None,
-        "days_with_data": result.days_with_data or 0,
-    }
+    """Returns segment count and date coverage for the given export configuration."""
+    return ExportService(db).get_preview(mode, target_date, from_date, to_date)
 
 
 @router.get("/segments", dependencies=[Depends(get_current_active_user)])
@@ -100,72 +43,19 @@ async def export_segments(
 ):
     """
     Exports road segment statistics in GeoJSON, Shapefile, or CSV format.
-    Modes:
-      single — stats for one specific date
-      range  — aggregated stats between from_date and to_date
-      all    — aggregated stats across all available data
+    Modes: single | range | all
     """
     if format not in ("geojson", "shapefile", "csv"):
         raise HTTPException(status_code=400, detail="format must be one of: geojson, shapefile, csv")
     if mode not in ("single", "range", "all"):
         raise HTTPException(status_code=400, detail="mode must be one of: single, range, all")
 
-    if mode == "single":
-        target = target_date or date.today()
-        results = db.query(
-            RoadSegment.id,
-            RoadSegment.osm_id,
-            RoadSegment.name,
-            RoadSegment.road_type,
-            SegmentStatistics.avg_width,
-            SegmentStatistics.min_width,
-            SegmentStatistics.max_width,
-            SegmentStatistics.measurements_count,
-            SegmentStatistics.stat_date.label("date_from"),
-            SegmentStatistics.stat_date.label("date_to"),
-            func.ST_AsGeoJSON(RoadSegment.geom).label("geometry"),
-        ).join(
-            SegmentStatistics, RoadSegment.id == SegmentStatistics.segment_id
-        ).filter(
-            SegmentStatistics.stat_date == target
-        ).all()
-        filename_suffix = str(target)
-    else:
-        q = db.query(
-            RoadSegment.id,
-            RoadSegment.osm_id,
-            RoadSegment.name,
-            RoadSegment.road_type,
-            (func.sum(SegmentStatistics.avg_width * SegmentStatistics.measurements_count) /
-             func.nullif(func.sum(SegmentStatistics.measurements_count), 0)).label("avg_width"),
-            func.min(SegmentStatistics.min_width).label("min_width"),
-            func.max(SegmentStatistics.max_width).label("max_width"),
-            func.sum(SegmentStatistics.measurements_count).label("measurements_count"),
-            func.min(SegmentStatistics.stat_date).label("date_from"),
-            func.max(SegmentStatistics.stat_date).label("date_to"),
-            func.ST_AsGeoJSON(RoadSegment.geom).label("geometry"),
-        ).join(
-            SegmentStatistics, RoadSegment.id == SegmentStatistics.segment_id
-        )
-        if mode == "range":
-            if from_date:
-                q = q.filter(SegmentStatistics.stat_date >= from_date)
-            if to_date:
-                q = q.filter(SegmentStatistics.stat_date <= to_date)
-        results = q.group_by(
-            RoadSegment.id,
-            RoadSegment.osm_id,
-            RoadSegment.name,
-            RoadSegment.road_type,
-            RoadSegment.geom,
-        ).all()
-        filename_suffix = f"{from_date}_to_{to_date}" if mode == "range" else "all_time"
+    rows_data, filename_suffix = ExportService(db).get_export_data(mode, target_date, from_date, to_date)
 
-    if not results:
+    if not rows_data:
         raise HTTPException(status_code=404, detail="No data found for the selected criteria")
 
     filename_base = f"clearway_segments_{filename_suffix}"
-    rows_data = _build_export_rows(results, mode)
 
     if format == "geojson":
         features = [

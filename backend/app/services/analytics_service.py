@@ -1,9 +1,9 @@
 import logging
 from sqlalchemy.orm import Session
+from sqlalchemy import func, cast, String, text
 from datetime import date
-from sqlalchemy import text
-from app.models import SegmentStatistics
-from app.core.constants import SNAP_DISTANCE_DEG
+from app.models import RoadSegment, SegmentStatistics
+from app.core.constants import SNAP_DISTANCE_DEG, PASSABILITY_THRESHOLD_M
 
 log = logging.getLogger(__name__)
 
@@ -113,5 +113,93 @@ class AnalyticsService:
 
         return [
             {"range": f"{row.min} - {row.max}", "count": int(row.count), "min": int(row.min)}
+            for row in rows
+        ]
+
+    def get_road_segments(self, target_date: date) -> dict:
+        """Return GeoJSON FeatureCollection of road segments with statistics for a given date."""
+        import json
+        results = self.db.query(
+            RoadSegment.id,
+            RoadSegment.name,
+            SegmentStatistics.avg_width,
+            SegmentStatistics.min_width,
+            SegmentStatistics.max_width,
+            SegmentStatistics.measurements_count,
+            func.ST_AsGeoJSON(RoadSegment.geom).label("geometry"),
+        ).join(
+            SegmentStatistics, RoadSegment.id == SegmentStatistics.segment_id
+        ).filter(
+            SegmentStatistics.stat_date == target_date
+        ).all()
+
+        features = []
+        for row in results:
+            status = "ok" if row.avg_width >= PASSABILITY_THRESHOLD_M else "narrow"
+            features.append({
+                "type": "Feature",
+                "geometry": json.loads(row.geometry),
+                "properties": {
+                    "segment_id": str(row.id),
+                    "name": row.name if row.name and row.name != "nan" else None,
+                    "avg_width": row.avg_width,
+                    "min_width": row.min_width,
+                    "max_width": row.max_width,
+                    "measurements_count": row.measurements_count,
+                    "status": status,
+                },
+            })
+        return {"type": "FeatureCollection", "features": features}
+
+    def search_roads(self, q: str) -> list[dict]:
+        """Search road segments by name; returns top 10 unique names with centroids."""
+        results = self.db.query(
+            func.max(cast(RoadSegment.id, String)).label("id"),
+            RoadSegment.name,
+            func.ST_Y(func.ST_Centroid(func.ST_Collect(RoadSegment.geom))).label("lat"),
+            func.ST_X(func.ST_Centroid(func.ST_Collect(RoadSegment.geom))).label("lon"),
+        ).filter(
+            RoadSegment.name.ilike(f"%{q}%")
+        ).group_by(
+            RoadSegment.name
+        ).limit(10).all()
+
+        return [
+            {
+                "id": str(row.id),
+                "name": row.name if row.name and row.name != "nan" else None,
+                "center_lat": row.lat,
+                "center_lon": row.lon,
+            }
+            for row in results
+        ]
+
+    def get_sessions_for_date(self, target_date: date) -> list[dict]:
+        """Return measurement sessions that collected data on the given date."""
+        rows = self.db.execute(
+            text("""
+                SELECT
+                    s.id,
+                    MIN(rm.measured_at) AS started_at,
+                    MAX(rm.measured_at) AS ended_at,
+                    COUNT(cm.id)        AS measurement_count
+                FROM sessions s
+                JOIN batches b             ON b.session_id          = s.id
+                JOIN raw_measurements rm   ON rm.batch_id           = b.id
+                JOIN cleaned_measurements cm ON cm.raw_measurement_id = rm.id
+                WHERE DATE(rm.measured_at) = :d
+                GROUP BY s.id
+                ORDER BY started_at
+            """),
+            {"d": target_date},
+        ).fetchall()
+
+        return [
+            {
+                "id": str(row.id),
+                "started_at": row.started_at.isoformat(),
+                "ended_at": row.ended_at.isoformat(),
+                "measurement_count": int(row.measurement_count),
+            }
             for row in rows
         ]
