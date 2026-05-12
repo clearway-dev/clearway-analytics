@@ -2,7 +2,7 @@ import json
 from fastmcp import FastMCP
 from sqlalchemy import func, text
 from app.database import SessionLocal
-from app.models import TargetVehicle, RoadSegment, Cluster
+from app.models import TargetVehicle, Cluster
 from app.services.dashboard_service import DashboardService
 from app.services.ml_service import MLService
 from app.core.constants import PASSABILITY_THRESHOLD_CM

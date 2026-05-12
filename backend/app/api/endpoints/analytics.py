@@ -5,7 +5,6 @@ from typing import Optional
 from datetime import date
 
 from app.database import get_db
-from app.models import RoadSegment
 from app.services.ml_service import MLService
 from app.api.deps import get_current_active_user
 
