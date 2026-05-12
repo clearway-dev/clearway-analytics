@@ -309,11 +309,11 @@ export default function FloatingPanel({
   }, [vehicleWidth]);
 
   useEffect(() => {
-    apiClient.get<VehicleOption[]>("/api/vehicles/")
+    apiClient.get<VehicleOption[]>("/api/v1/vehicles/")
       .then((r) => setVehicles(r.data))
       .catch(() => setVehicles([]));
 
-    apiClient.get<StationOption[]>("/api/stations/")
+    apiClient.get<StationOption[]>("/api/v1/stations/")
       .then((r) => setStations(r.data))
       .catch(() => setStations([]));
   }, []);

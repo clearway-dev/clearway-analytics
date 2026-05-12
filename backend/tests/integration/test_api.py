@@ -52,7 +52,7 @@ def test_parse_vehicle_with_mocked_llm_returns_parsed_data(client, mocker):
     )
 
     response = client.post(
-        "/api/ai/parse-vehicle",
+        "/api/v1/ai/parse-vehicle",
         json={"text": "CAS 24 SCANIA, šířka 2 550 mm, výška 3 400 mm, hmotnost 18,6 t"},
     )
 
@@ -162,7 +162,7 @@ def test_dbscan_detects_exactly_one_obstacle_cluster(client, obstacle_measuremen
     endpoint with severity=critical and the correct cluster size.
     """
     response = client.get(
-        "/api/analytics/obstacles",
+        "/api/v1/analytics/obstacles",
         params={"target_date": str(_TEST_DATE)},
     )
 
@@ -201,7 +201,7 @@ def test_bbox_returns_geojson_feature_collection(client):
     GeoJSON FeatureCollection with at least one road segment, each having the
     expected structure (id, geometry, properties with avg_width and name).
     """
-    response = client.get("/api/maps/bbox", params=_PLZEN_BBOX)
+    response = client.get("/api/v1/maps/bbox", params=_PLZEN_BBOX)
 
     assert response.status_code == 200
     body = response.json()
@@ -223,7 +223,7 @@ def test_bbox_outside_road_network_returns_empty_features(client):
     GET /api/maps/bbox with a bbox in the open ocean must return HTTP 200
     with an empty features list — absence of data is not an error.
     """
-    response = client.get("/api/maps/bbox", params=_OCEAN_BBOX)
+    response = client.get("/api/v1/maps/bbox", params=_OCEAN_BBOX)
 
     assert response.status_code == 200
     body = response.json()
@@ -248,7 +248,7 @@ def test_route_between_two_plzen_points_returns_ok(client):
     from OSM data is intact.
     """
     response = client.post(
-        "/api/routing/route",
+        "/api/v1/routing/route",
         json={
             "start_lat": _ROUTE_START["lat"],
             "start_lon": _ROUTE_START["lon"],
@@ -272,7 +272,7 @@ def test_route_with_same_start_and_end_returns_no_route(client):
     signal that the points are at the same location.
     """
     response = client.post(
-        "/api/routing/route",
+        "/api/v1/routing/route",
         json={
             "start_lat": _ROUTE_START["lat"],
             "start_lon": _ROUTE_START["lon"],
@@ -293,7 +293,7 @@ def test_route_outside_road_network_returns_404(client):
     and communicates this situation to the caller.
     """
     response = client.post(
-        "/api/routing/route",
+        "/api/v1/routing/route",
         json={
             "start_lat": 0.0,
             "start_lon": 0.0,
@@ -317,7 +317,7 @@ def test_obstacles_bbox_containing_cluster_returns_one_result(client, obstacle_m
     """
     # Tight bbox around the cluster centroid (_BASE_LAT, _BASE_LON)
     response = client.get(
-        "/api/analytics/obstacles",
+        "/api/v1/analytics/obstacles",
         params={
             "target_date": str(_TEST_DATE),
             "min_lon": _BASE_LON - 0.01,
@@ -343,7 +343,7 @@ def test_obstacles_bbox_excluding_cluster_returns_empty(client, obstacle_measure
     """
     # Bbox far from the cluster — somewhere in the Atlantic Ocean
     response = client.get(
-        "/api/analytics/obstacles",
+        "/api/v1/analytics/obstacles",
         params={
             "target_date": str(_TEST_DATE),
             "min_lon": -10.0,

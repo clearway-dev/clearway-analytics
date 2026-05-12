@@ -42,7 +42,7 @@ SCENARIOS: list[dict] = [
         "name": "route_short",
         "label": "Krátká trasa (~500 m, centrum Plzně)",
         "method": "POST",
-        "path": "/api/routing/route",
+        "path": "/api/v1/routing/route",
         "json": {
             "start_lat": 49.7477,
             "start_lon": 13.3776,
@@ -55,7 +55,7 @@ SCENARIOS: list[dict] = [
         "name": "route_long",
         "label": "Dlouhá trasa (~3 km, Plzeň jih–sever)",
         "method": "POST",
-        "path": "/api/routing/route",
+        "path": "/api/v1/routing/route",
         "json": {
             "start_lat": 49.7350,
             "start_lon": 13.3650,
@@ -68,7 +68,7 @@ SCENARIOS: list[dict] = [
         "name": "route_wide_vehicle",
         "label": "Trasa – široké vozidlo (500 cm), cenová funkce aktivní",
         "method": "POST",
-        "path": "/api/routing/route",
+        "path": "/api/v1/routing/route",
         "json": {
             "start_lat": 49.7350,
             "start_lon": 13.3650,
@@ -82,7 +82,7 @@ SCENARIOS: list[dict] = [
         "name": "bbox_small",
         "label": "BBox malý (~0.5 km², centrum)",
         "method": "GET",
-        "path": "/api/maps/bbox",
+        "path": "/api/v1/maps/bbox",
         "params": {
             "min_lat": 49.744,
             "min_lon": 13.373,
@@ -94,7 +94,7 @@ SCENARIOS: list[dict] = [
         "name": "bbox_large",
         "label": "BBox velký (~celý dataset Plzně)",
         "method": "GET",
-        "path": "/api/maps/bbox",
+        "path": "/api/v1/maps/bbox",
         "params": {
             "min_lat": 49.72,
             "min_lon": 13.36,
@@ -112,7 +112,7 @@ SCENARIOS: list[dict] = [
 def fetch_token(base_url: str, email: str, password: str) -> str:
     """Authenticate and return a Bearer JWT token."""
     resp = httpx.post(
-        f"{base_url}/api/auth/login/access-token",
+        f"{base_url}/api/v1/auth/login/access-token",
         data={"username": email, "password": password},
         timeout=10,
     )

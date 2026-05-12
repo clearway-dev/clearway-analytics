@@ -17,7 +17,7 @@ export default function WidthHistogram({ segmentId }: WidthHistogramProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    apiClient.get(`/api/stats/segment/${segmentId}/histogram`)
+    apiClient.get(`/api/v1/stats/segment/${segmentId}/histogram`)
       .then((res) => {
         const activeBins = res.data.filter((d: HistrogramBin) => d.count > 0);
         setData(activeBins);

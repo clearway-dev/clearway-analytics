@@ -90,7 +90,7 @@ export default function StationsPage() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    apiClient.get("/api/stations/")
+    apiClient.get("/api/v1/stations/")
       .then((r) => { setStations(r.data); setLoading(false); })
       .catch(() => { setPageError("Nepodařilo se načíst data."); setLoading(false); });
   }, []);
@@ -136,7 +136,7 @@ export default function StationsPage() {
     setGeocoding(true);
     try {
       const res = await apiClient.get<{ address: string; city: string }>(
-        "/api/geocode/reverse",
+        "/api/v1/geocode/reverse",
         { params: { lat, lon: lng }, signal: controller.signal }
       );
       setForm((prev) => ({ ...prev, address: res.data.address }));
@@ -159,7 +159,7 @@ export default function StationsPage() {
     setSearching(true);
     try {
       const res = await apiClient.get<{ display_name: string; lat: number; lon: number }[]>(
-        "/api/geocode/forward",
+        "/api/v1/geocode/forward",
         { params: { q }, signal: ctrl.signal }
       );
       setSuggestions(res.data);
@@ -211,7 +211,7 @@ export default function StationsPage() {
     setSaving(true);
     setFormError(null);
     try {
-      const url = editingId ? `/api/stations/${editingId}` : "/api/stations/";
+      const url = editingId ? `/api/v1/stations/${editingId}` : "/api/v1/stations/";
       const method = editingId ? "put" : "post";
       const res = await apiClient[method]<StationRecord>(url, body);
       const saved = res.data;
@@ -233,7 +233,7 @@ export default function StationsPage() {
     if (!deleteId) return;
     setDeleting(true);
     try {
-      await apiClient.delete(`/api/stations/${deleteId}`);
+      await apiClient.delete(`/api/v1/stations/${deleteId}`);
       setStations((prev) => prev.filter((s) => s.id !== deleteId));
     } finally {
       setDeleteId(null);

@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     apiClient
-      .get<User>("/api/auth/users/me")
+      .get<User>("/api/v1/auth/users/me")
       .then((res) => {
         setUser(res.data);
         setToken(storedToken);
@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     params.append("password", password);
 
     const tokenRes = await apiClient.post<{ access_token: string; token_type: string }>(
-      "/api/auth/login/access-token",
+      "/api/v1/auth/login/access-token",
       params,
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
@@ -84,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("access_token", newToken);
     setToken(newToken);
 
-    const meRes = await apiClient.get<User>("/api/auth/users/me", {
+    const meRes = await apiClient.get<User>("/api/v1/auth/users/me", {
       headers: { Authorization: `Bearer ${newToken}` },
     });
     setUser(meRes.data);

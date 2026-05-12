@@ -127,7 +127,7 @@ export default function VehiclesPage() {
   // Load
   // ------------------------------------------------------------------
   useEffect(() => {
-    apiClient.get("/api/vehicles/")
+    apiClient.get("/api/v1/vehicles/")
       .then((r) => { setVehicles(r.data); setLoading(false); })
       .catch(() => { setPageError("Nepodařilo se načíst data."); setLoading(false); });
   }, []);
@@ -191,7 +191,7 @@ export default function VehiclesPage() {
     setFormError(null);
 
     try {
-      const url = editingId ? `/api/vehicles/${editingId}` : "/api/vehicles/";
+      const url = editingId ? `/api/v1/vehicles/${editingId}` : "/api/v1/vehicles/";
       const method = editingId ? "put" : "post";
       const res = await apiClient[method]<TargetVehicle>(url, body);
       const saved = res.data;
@@ -216,7 +216,7 @@ export default function VehiclesPage() {
     if (!deleteId) return;
     setDeleting(true);
     try {
-      await apiClient.delete(`/api/vehicles/${deleteId}`);
+      await apiClient.delete(`/api/v1/vehicles/${deleteId}`);
       setVehicles((prev) => prev.filter((v) => v.id !== deleteId));
     } finally {
       setDeleteId(null);

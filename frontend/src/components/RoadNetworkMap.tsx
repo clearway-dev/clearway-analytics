@@ -50,7 +50,7 @@ export default function RoadNetworkMap() {
     try {
       const { min_lat, min_lon, max_lat, max_lon } = bbox;
       const res = await apiClient.get(
-        `/api/maps/bbox?min_lat=${min_lat}&min_lon=${min_lon}&max_lat=${max_lat}&max_lon=${max_lon}`
+        `/api/v1/maps/bbox?min_lat=${min_lat}&min_lon=${min_lon}&max_lat=${max_lat}&max_lon=${max_lon}`
       );
       dataKey.current += 1;
       setRoads(res.data);

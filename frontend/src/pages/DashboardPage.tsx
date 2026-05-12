@@ -45,7 +45,7 @@ export default function DashboardPage() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    apiClient.get("/api/dashboard/available-dates").then((res) => {
+    apiClient.get("/api/v1/dashboard/available-dates").then((res) => {
       const dates: string[] = res.data.dates ?? [];
       setAvailableDates(dates);
       if (dates.length > 0) setSelectedDate(dates[0]);
@@ -68,7 +68,7 @@ export default function DashboardPage() {
       vehicle_width_cm: String(appliedWidth),
     });
     apiClient
-      .get(`/api/dashboard/stats?${params}`)
+      .get(`/api/v1/dashboard/stats?${params}`)
       .then((res) => { setStats(res.data); setLoadedKey(key); })
       .catch(() => { setStats(null); setLoadedKey(key); });
   }, [selectedDate, appliedWidth]);

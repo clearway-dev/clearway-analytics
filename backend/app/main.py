@@ -49,13 +49,13 @@ app.add_middleware(
 )
 # --------------------------------------------------------------------------
 
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(maps.router, prefix="/api/maps", tags=["maps"])
-app.include_router(vehicles.router, prefix="/api/vehicles", tags=["vehicles"])
-app.include_router(routing.router, prefix="/api/routing", tags=["routing"])
-app.include_router(stations.router, prefix="/api/stations", tags=["stations"])
-app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
-app.include_router(geocode.router, prefix="/api/geocode", tags=["geocode"])
+app.include_router(auth.router, prefix="/api/v1/auth", tags=["auth"])
+app.include_router(maps.router, prefix="/api/v1/maps", tags=["maps"])
+app.include_router(vehicles.router, prefix="/api/v1/vehicles", tags=["vehicles"])
+app.include_router(routing.router, prefix="/api/v1/routing", tags=["routing"])
+app.include_router(stations.router, prefix="/api/v1/stations", tags=["stations"])
+app.include_router(ai.router, prefix="/api/v1/ai", tags=["ai"])
+app.include_router(geocode.router, prefix="/api/v1/geocode", tags=["geocode"])
 
 @app.get("/")
 async def root():
@@ -88,7 +88,7 @@ async def get_status(db: Session = Depends(get_db)):
         logging.getLogger(__name__).error("Database connection error: %s", e)
         return {"database": "error", "detail": "Database unavailable"}
 
-@app.get("/api/map/segments", dependencies=[Depends(get_current_active_user)])
+@app.get("/api/v1/map/segments", dependencies=[Depends(get_current_active_user)])
 async def get_road_segments(
     target_date: date = date.today(),
     db: Session = Depends(get_db)
@@ -134,7 +134,7 @@ async def get_road_segments(
         "features": features
     }
 
-@app.get("/api/stats/segment/{segment_id}/histogram", dependencies=[Depends(get_current_active_user)])
+@app.get("/api/v1/stats/segment/{segment_id}/histogram", dependencies=[Depends(get_current_active_user)])
 async def get_segment_histogram(
     segment_id: str,
     db: Session = Depends(get_db)
@@ -148,7 +148,7 @@ async def get_segment_histogram(
 
     return histogram_data
 
-@app.get("/api/roads/search", dependencies=[Depends(get_current_active_user)])
+@app.get("/api/v1/roads/search", dependencies=[Depends(get_current_active_user)])
 async def search_roads(q: str, db: Session = Depends(get_db)):
     """
     Search for road segments by name (fulltext-like).
@@ -181,7 +181,7 @@ async def search_roads(q: str, db: Session = Depends(get_db)):
         for row in results
     ]
 
-@app.get("/api/dashboard/stats", dependencies=[Depends(get_current_active_user)])
+@app.get("/api/v1/dashboard/stats", dependencies=[Depends(get_current_active_user)])
 async def get_dashboard_stats(
     target_date: Optional[date] = None,
     vehicle_width_cm: float = 300.0,
@@ -193,7 +193,7 @@ async def get_dashboard_stats(
     service = DashboardService(db)
     return service.get_global_stats(target_date, vehicle_width_cm)
 
-@app.get("/api/dashboard/coverage", dependencies=[Depends(get_current_active_user)])
+@app.get("/api/v1/dashboard/coverage", dependencies=[Depends(get_current_active_user)])
 async def get_coverage_map(
     target_date: Optional[date] = None,
     db: Session = Depends(get_db),
@@ -205,7 +205,7 @@ async def get_coverage_map(
     service = DashboardService(db)
     return service.get_coverage_map_data(target_date)
 
-@app.get("/api/dashboard/available-dates", dependencies=[Depends(get_current_active_user)])
+@app.get("/api/v1/dashboard/available-dates", dependencies=[Depends(get_current_active_user)])
 async def get_available_dates(db: Session = Depends(get_db)):
     """
     Returns a list of dates for which data is available.
@@ -213,7 +213,7 @@ async def get_available_dates(db: Session = Depends(get_db)):
     service = DashboardService(db)
     return {"dates": service.get_available_dates()}
 
-@app.get("/api/export/preview", dependencies=[Depends(get_current_active_user)])
+@app.get("/api/v1/export/preview", dependencies=[Depends(get_current_active_user)])
 async def export_preview(
     mode: str = "single",
     target_date: Optional[date] = None,
@@ -280,7 +280,7 @@ def _build_export_rows(results, mode: str):
     return rows
 
 
-@app.get("/api/export/segments", dependencies=[Depends(get_current_active_user)])
+@app.get("/api/v1/export/segments", dependencies=[Depends(get_current_active_user)])
 async def export_segments(
     mode: str = "single",
     target_date: Optional[date] = None,
@@ -422,7 +422,7 @@ async def export_segments(
     )
 
 
-@app.get("/api/analytics/sessions", dependencies=[Depends(get_current_active_user)])
+@app.get("/api/v1/analytics/sessions", dependencies=[Depends(get_current_active_user)])
 async def get_sessions_for_date(
     target_date: date,
     db: Session = Depends(get_db),
@@ -461,7 +461,7 @@ async def get_sessions_for_date(
     ]
 
 
-@app.get("/api/analytics/obstacles", dependencies=[Depends(get_current_active_user)])
+@app.get("/api/v1/analytics/obstacles", dependencies=[Depends(get_current_active_user)])
 async def get_obstacles(
     target_date: date = date.today(),
     min_lon: Optional[float] = None,

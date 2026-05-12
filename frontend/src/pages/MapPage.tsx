@@ -127,7 +127,7 @@ export default function MapPage() {
     setRouteLoading(true);
     setRouteError(null);
     try {
-      const res = await apiClient.post("/api/routing/route", {
+      const res = await apiClient.post("/api/v1/routing/route", {
         start_lat: start[0],
         start_lon: start[1],
         end_lat: end[0],
