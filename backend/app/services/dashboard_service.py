@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, cast, distinct
 from geoalchemy2 import Geography
 from app.models import RoadSegment, SegmentStatistics
+from app.core.constants import PASSABILITY_THRESHOLD_CM
 import json
 
 
@@ -58,7 +59,7 @@ class DashboardService:
 
         return [str(r[0]) for r in results]
 
-    def get_critical_count(self, target_date=None, vehicle_width_cm: float = 300.0) -> int:
+    def get_critical_count(self, target_date=None, vehicle_width_cm: float = PASSABILITY_THRESHOLD_CM) -> int:
         """
         Returns count of segments where min_width < vehicle_width_cm for the given date.
         """
@@ -73,7 +74,7 @@ class DashboardService:
             SegmentStatistics.min_width.isnot(None),
         ).scalar() or 0
 
-    def get_critical_segments(self, target_date=None, vehicle_width_cm: float = 300.0, limit: int = 5):
+    def get_critical_segments(self, target_date=None, vehicle_width_cm: float = PASSABILITY_THRESHOLD_CM, limit: int = 5):
         """
         Returns the top narrowest segments for the given date, ordered by min_width ASC.
         """
@@ -113,7 +114,7 @@ class DashboardService:
             for r in results
         ]
 
-    def get_global_stats(self, target_date=None, vehicle_width_cm: float = 300.0):
+    def get_global_stats(self, target_date=None, vehicle_width_cm: float = PASSABILITY_THRESHOLD_CM):
         """
         Calculates global KPI statistics for the dashboard.
         Returns both all-time and date-specific values for measurements and coverage.

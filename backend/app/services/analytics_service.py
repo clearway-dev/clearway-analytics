@@ -3,14 +3,13 @@ from sqlalchemy.orm import Session
 from datetime import date
 from sqlalchemy import text
 from app.models import SegmentStatistics
+from app.core.constants import SNAP_DISTANCE_DEG
 
 log = logging.getLogger(__name__)
 
-# Maximum distance (metres) for assigning a measurement to a road segment.
-SNAP_DISTANCE_M = 10
-# Degree approximation of SNAP_DISTANCE_M for geometry-based ST_DWithin.
-# 1 degree ≈ 111 320 m at the equator; accurate enough for Plzeň (lat ~49.7°).
-SNAP_DISTANCE_DEG = SNAP_DISTANCE_M / 111_320.0
+HISTOGRAM_BIN_WIDTH_CM = 25
+HISTOGRAM_MAX_WIDTH_CM = 1000
+HISTOGRAM_BUCKET_COUNT = HISTOGRAM_MAX_WIDTH_CM // HISTOGRAM_BIN_WIDTH_CM
 
 
 class AnalyticsService:
@@ -91,25 +90,25 @@ class AnalyticsService:
     def get_segment_histogram(self, segment_id: str) -> list[dict]:
         """Return width distribution for a segment as 25 cm bins using SQL WIDTH_BUCKET."""
         rows = self.db.execute(
-            text("""
+            text(f"""
                 WITH seg AS (
                     SELECT geom FROM road_segments WHERE id = :segment_id
                 ),
                 bucketed AS (
-                    SELECT WIDTH_BUCKET(cm.cleaned_width, 0, 1000, 40) AS bucket
+                    SELECT WIDTH_BUCKET(cm.cleaned_width, 0, {HISTOGRAM_MAX_WIDTH_CM}, {HISTOGRAM_BUCKET_COUNT}) AS bucket
                     FROM cleaned_measurements cm, seg
-                    WHERE ST_DWithin(cm.geom, seg.geom, 0.00008983)
-                      AND cm.cleaned_width BETWEEN 0 AND 1000
+                    WHERE ST_DWithin(cm.geom, seg.geom, :snap_deg)
+                      AND cm.cleaned_width BETWEEN 0 AND {HISTOGRAM_MAX_WIDTH_CM}
                 )
                 SELECT
-                    (bucket - 1) * 25  AS min,
-                    bucket * 25        AS max,
+                    (bucket - 1) * {HISTOGRAM_BIN_WIDTH_CM}  AS min,
+                    bucket * {HISTOGRAM_BIN_WIDTH_CM}         AS max,
                     COUNT(*)           AS count
                 FROM bucketed
                 GROUP BY bucket
                 ORDER BY bucket
             """),
-            {"segment_id": segment_id},
+            {"segment_id": segment_id, "snap_deg": SNAP_DISTANCE_DEG},
         ).fetchall()
 
         return [

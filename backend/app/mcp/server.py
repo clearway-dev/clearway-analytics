@@ -16,6 +16,7 @@ from app.models import (
     Station, Cluster,
 )
 from app.api.endpoints.routing import _find_edge_snap
+from app.core.constants import PASSABILITY_THRESHOLD_CM, SNAP_DISTANCE_DEG
 from datetime import datetime, date
 import json
 
@@ -123,7 +124,7 @@ def get_available_dates() -> list[str]:
 @mcp.tool()
 def get_passability_stats(
     target_date: str | None = None,
-    vehicle_width_cm: float = 300.0,
+    vehicle_width_cm: float = PASSABILITY_THRESHOLD_CM,
 ) -> dict:
     """
     Returns network-wide KPI statistics for a given date and vehicle width.
@@ -242,7 +243,7 @@ def get_segment_detail(segment_id: str) -> dict:
                 "max_width": row.max_width,
                 "measurements_count": row.measurements_count,
                 "passable_300cm": (
-                    row.avg_width >= 300.0 if row.avg_width is not None else None
+                    row.avg_width >= PASSABILITY_THRESHOLD_CM if row.avg_width is not None else None
                 ),
             }
             for row in history_rows
@@ -264,7 +265,7 @@ def get_segment_detail(segment_id: str) -> dict:
 def get_temporal_trends(
     from_date: str,
     to_date: str,
-    vehicle_width_cm: float = 300.0,
+    vehicle_width_cm: float = PASSABILITY_THRESHOLD_CM,
 ) -> list[dict]:
     """
     Returns day-by-day network statistics between two dates. Useful for
@@ -634,7 +635,7 @@ def get_road_features_in_bbox(
         avg_w = row.avg_width
         status = (
             "no_data" if avg_w is None
-            else "ok" if avg_w >= 300.0
+            else "ok" if avg_w >= PASSABILITY_THRESHOLD_CM
             else "narrow"
         )
         features.append({
@@ -662,7 +663,7 @@ def find_passable_route(
     start_lon: float,
     end_lat: float,
     end_lon: float,
-    vehicle_width_cm: float = 300.0,
+    vehicle_width_cm: float = PASSABILITY_THRESHOLD_CM,
     target_date: str | None = None,
 ) -> dict:
     """

@@ -4,6 +4,7 @@ import type { LatLngTuple, Layer } from "leaflet";
 import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import apiClient from "../lib/api";
 import { roadName } from "../lib/utils";
+import { PASSABILITY_THRESHOLD_M } from "../lib/constants";
 
 interface RoadProperties {
   name: string | null;
@@ -67,7 +68,7 @@ export default function RoadNetworkMap() {
       return { color: "#888888", weight: 2, opacity: 0.6 };
     }
     return {
-      color: avgWidth < 3.0 ? "#e74c3c" : "#2ecc71",
+      color: avgWidth < PASSABILITY_THRESHOLD_M ? "#e74c3c" : "#2ecc71",
       weight: 4,
       opacity: 0.9,
     };

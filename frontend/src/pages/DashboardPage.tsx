@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import apiClient from "../lib/api";
+import { DEFAULT_VEHICLE_WIDTH_CM } from "../lib/constants";
 import { roadName } from "../lib/utils";
 import { Card, CardHeader, CardTitle, CardContent } from "../components/ui/card";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../components/ui/table";
@@ -39,8 +40,8 @@ export default function DashboardPage() {
   const [loadedKey, setLoadedKey] = useState<string>("");
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>("");
-  const [vehicleWidth, setVehicleWidth] = useState<number>(250);
-  const [appliedWidth, setAppliedWidth] = useState<number>(250);
+  const [vehicleWidth, setVehicleWidth] = useState<number>(DEFAULT_VEHICLE_WIDTH_CM);
+  const [appliedWidth, setAppliedWidth] = useState<number>(DEFAULT_VEHICLE_WIDTH_CM);
   const [statsMode, setStatsMode] = useState<"alltime" | "date">("alltime");
   const navigate = useNavigate();
 

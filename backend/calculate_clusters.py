@@ -49,11 +49,15 @@ MIN_SAMPLES        = 5            # minimum points to form a cluster
 EARTH_RADIUS_M     = 6_371_000.0
 EPSILON            = EPSILON_M / EARTH_RADIUS_M  # radians (for haversine metric)
 
+# ── Severity thresholds (average cluster width in metres) ─────────────────────
+CRITICAL_WIDTH_M = 2.0
+HIGH_WIDTH_M     = 2.5
+
 
 def _severity(avg_width_m: float) -> str:
-    if avg_width_m < 2.0:
+    if avg_width_m < CRITICAL_WIDTH_M:
         return "critical"
-    if avg_width_m <= 2.5:
+    if avg_width_m <= HIGH_WIDTH_M:
         return "high"
     return "medium"
 

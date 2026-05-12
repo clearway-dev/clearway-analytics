@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import apiClient from "../lib/api";
+import { PASSABILITY_THRESHOLD_CM } from "../lib/constants";
 
 interface HistrogramBin {
   range: string;
@@ -73,7 +74,7 @@ export default function WidthHistogram({ segmentId }: WidthHistogramProps) {
             {data.map((entry, index) => (
               <Cell
                 key={`cell-${index}`}
-                fill={entry.min < 300 ? "#f87171" : "#4ade80"}
+                fill={entry.min < PASSABILITY_THRESHOLD_CM ? "#f87171" : "#4ade80"}
               />
             ))}
           </Bar>

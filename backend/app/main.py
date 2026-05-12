@@ -19,6 +19,7 @@ from app.services.analytics_service import AnalyticsService
 from app.services.dashboard_service import DashboardService
 from app.services.ml_service import MLService
 from app.api.deps import get_current_active_user
+from app.core.constants import PASSABILITY_THRESHOLD_M, PASSABILITY_THRESHOLD_CM
 from app.api.endpoints import auth, maps, vehicles, routing, stations, ai, geocode
 
 # Initialize the FastAPI application with metadata
@@ -113,7 +114,7 @@ async def get_road_segments(
 
     features = []
     for row in results:
-        status = "ok" if row.avg_width >= 3.0 else "narrow"
+        status = "ok" if row.avg_width >= PASSABILITY_THRESHOLD_M else "narrow"
 
         features.append({
             "type": "Feature",
@@ -184,7 +185,7 @@ async def search_roads(q: str, db: Session = Depends(get_db)):
 @app.get("/api/v1/dashboard/stats", dependencies=[Depends(get_current_active_user)])
 async def get_dashboard_stats(
     target_date: Optional[date] = None,
-    vehicle_width_cm: float = 300.0,
+    vehicle_width_cm: float = PASSABILITY_THRESHOLD_CM,
     db: Session = Depends(get_db),
 ):
     """
@@ -272,7 +273,7 @@ def _build_export_rows(results, mode: str):
             "min_width": row.min_width,
             "max_width": row.max_width,
             "measurements_count": int(row.measurements_count) if row.measurements_count else 0,
-            "status": "ok" if (avg or 0) >= 3.0 else "narrow",
+            "status": "ok" if (avg or 0) >= PASSABILITY_THRESHOLD_M else "narrow",
             "date_from": str(row.date_from),
             "date_to": str(row.date_to),
             "geometry": row.geometry,
