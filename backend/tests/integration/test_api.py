@@ -355,3 +355,85 @@ def test_obstacles_bbox_excluding_cluster_returns_empty(client, obstacle_measure
 
     assert response.status_code == 200
     assert response.json()["features"] == []
+
+
+# ---------------------------------------------------------------------------
+# 7. Error states — authentication, authorisation, and input validation
+# ---------------------------------------------------------------------------
+
+def test_unauthenticated_request_returns_401(unauthenticated_client):
+    """Any protected endpoint must reject a request without a token with 401."""
+    response = unauthenticated_client.get("/api/v1/maps/bbox", params=_PLZEN_BBOX)
+    assert response.status_code == 401
+
+
+def test_non_admin_cannot_create_vehicle(client):
+    """
+    POST /api/v1/vehicles/ must return 403 when the caller is not an admin.
+    Temporarily replaces the require_admin override with one that raises 403.
+    """
+    from app.api.deps import require_admin
+    from fastapi import HTTPException as _HTTPException
+
+    def _deny():
+        raise _HTTPException(status_code=403, detail="Admin required")
+
+    original = client.app.dependency_overrides.get(require_admin)
+    client.app.dependency_overrides[require_admin] = _deny
+    try:
+        response = client.post(
+            "/api/v1/vehicles/",
+            json={"vehicle_name": "Test", "width": 200.0},
+        )
+        assert response.status_code == 403
+    finally:
+        if original is None:
+            client.app.dependency_overrides.pop(require_admin, None)
+        else:
+            client.app.dependency_overrides[require_admin] = original
+
+
+def test_bbox_inverted_coordinates_returns_422(client):
+    """
+    GET /api/v1/maps/bbox with min_lat > max_lat must return 422 — the endpoint
+    validates coordinate order before executing the database query.
+    """
+    response = client.get(
+        "/api/v1/maps/bbox",
+        params={
+            "min_lat": 49.76,   # intentionally inverted
+            "min_lon": 13.37,
+            "max_lat": 49.74,
+            "max_lon": 13.39,
+        },
+    )
+    assert response.status_code == 422
+
+
+def test_bbox_missing_required_params_returns_422(client):
+    """
+    GET /api/v1/maps/bbox without the required bbox query parameters must
+    return 422 (FastAPI schema validation), not a 500 server error.
+    """
+    response = client.get("/api/v1/maps/bbox")
+    assert response.status_code == 422
+
+
+def test_route_invalid_body_returns_422(client):
+    """
+    POST /api/v1/routing/route with a malformed body (string where float expected)
+    must return 422 from FastAPI's request validation, not a 500 server error.
+    """
+    response = client.post(
+        "/api/v1/routing/route",
+        json={
+            "start_lat": "not-a-number",
+            "start_lon": 13.37,
+            "end_lat": 49.75,
+            "end_lon": 13.38,
+            "vehicle_width_cm": 200.0,
+        },
+    )
+    assert response.status_code == 422
+
+

@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
@@ -14,13 +16,8 @@ app = FastAPI(
     version="1.0.0",
 )
 
-origins = [
-    "http://localhost",
-    "http://localhost:5173",
-    "http://localhost:3000",
-    "https://clearway.zephyron.tech",
-    "https://www.clearway.zephyron.tech",
-]
+_cors_default = "http://localhost,http://localhost:5173,http://localhost:3000"
+origins = [o.strip() for o in os.getenv("CORS_ORIGINS", _cors_default).split(",")]
 
 app.add_middleware(
     CORSMiddleware,

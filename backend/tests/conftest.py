@@ -54,6 +54,24 @@ def client():
     app.dependency_overrides.clear()
 
 
+@pytest.fixture(scope="session")
+def unauthenticated_client():
+    """Session-scoped TestClient with only the DB override — no auth bypass."""
+    def _db_override():
+        db = _SessionFactory()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    app.dependency_overrides[get_db] = _db_override
+
+    with TestClient(app, raise_server_exceptions=False) as c:
+        yield c
+
+    app.dependency_overrides.clear()
+
+
 @pytest.fixture
 def db():
     """
