@@ -14,6 +14,17 @@ router = APIRouter()
 VALID_TYPES = {"fire_station", "police", "hospital", "rescue", "other"}
 
 
+class StationOut(BaseModel):
+    id: str
+    name: str
+    type: Optional[str] = None
+    address: Optional[str] = None
+    lat: float
+    lon: float
+    notes: Optional[str] = None
+    created_at: Optional[str] = None
+
+
 class StationBody(BaseModel):
     name: str
     type: Optional[str] = None
@@ -43,13 +54,13 @@ def _to_dict(s: Station) -> dict:
     }
 
 
-@router.get("/", response_model=list, dependencies=[Depends(get_current_active_user)])
+@router.get("/", response_model=list[StationOut], dependencies=[Depends(get_current_active_user)])
 def list_stations(db: Session = Depends(get_db)):
     stations = db.query(Station).order_by(Station.name).all()
     return [_to_dict(s) for s in stations]
 
 
-@router.post("/", response_model=dict, status_code=201, dependencies=[Depends(require_admin)])
+@router.post("/", response_model=StationOut, status_code=201, dependencies=[Depends(require_admin)])
 def create_station(body: StationBody, db: Session = Depends(get_db)):
     station = Station(**body.model_dump())
     db.add(station)
@@ -58,7 +69,7 @@ def create_station(body: StationBody, db: Session = Depends(get_db)):
     return _to_dict(station)
 
 
-@router.put("/{station_id}", response_model=dict, dependencies=[Depends(require_admin)])
+@router.put("/{station_id}", response_model=StationOut, dependencies=[Depends(require_admin)])
 def update_station(station_id: UUID, body: StationBody, db: Session = Depends(get_db)):
     station = db.query(Station).filter(Station.id == station_id).first()
     if not station:

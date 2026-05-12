@@ -2,7 +2,7 @@ import json
 from datetime import date
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -23,6 +23,9 @@ async def get_segments_in_bbox(
     session_id: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ):
+    if min_lat >= max_lat or min_lon >= max_lon:
+        raise HTTPException(status_code=422, detail="min_lat/min_lon must be less than max_lat/max_lon")
+
     bbox_params = {
         "min_lon": min_lon,
         "min_lat": min_lat,
