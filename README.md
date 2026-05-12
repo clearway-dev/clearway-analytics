@@ -225,3 +225,19 @@ For local development use `http://localhost:8001/sse`.
 ## Database Migrations
 
 Migrations are located in `clearway-infra/db/migrations/` as `V001__*.sql`, `V002__*.sql`, ... and are applied manually. Convention: always use the `V00N__` prefix (zero-padded) with a descriptive name in the filename.
+
+---
+
+## Environment Variables — CORS
+
+For production, set `CORS_ORIGINS` to a comma-separated list of allowed origins:
+
+```bash
+CORS_ORIGINS=https://clearway.zephyron.tech,https://www.clearway.zephyron.tech
+```
+
+In development the default (`http://localhost`, `http://localhost:5173`, `http://localhost:3000`) is used automatically.
+
+---
+
+_Last commit for Master's Thesis — 12/05/2026_
