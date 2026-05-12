@@ -43,14 +43,14 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(
-    localStorage.getItem("access_token")
+    sessionStorage.getItem("access_token")
   );
   // Lazy init: start loading only when there's a token to validate
-  const [isLoading, setIsLoading] = useState(() => !!localStorage.getItem("access_token"));
+  const [isLoading, setIsLoading] = useState(() => !!sessionStorage.getItem("access_token"));
 
   // On mount: validate stored token and restore user state
   useEffect(() => {
-    const storedToken = localStorage.getItem("access_token");
+    const storedToken = sessionStorage.getItem("access_token");
     if (!storedToken) {
       return;
     }
@@ -62,7 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch(() => {
         // Token is invalid or expired — clear it
-        localStorage.removeItem("access_token");
+        sessionStorage.removeItem("access_token");
         setToken(null);
       })
       .finally(() => setIsLoading(false));
@@ -81,7 +81,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     );
 
     const newToken = tokenRes.data.access_token;
-    localStorage.setItem("access_token", newToken);
+    sessionStorage.setItem("access_token", newToken);
     setToken(newToken);
 
     const meRes = await apiClient.get<User>("/api/v1/auth/users/me", {
@@ -91,7 +91,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(() => {
-    localStorage.removeItem("access_token");
+    sessionStorage.removeItem("access_token");
     setToken(null);
     setUser(null);
   }, []);

@@ -55,6 +55,34 @@ def client():
 
 
 @pytest.fixture
+def unauthenticated_client():
+    """
+    Function-scoped TestClient with only the DB override — no auth bypass.
+    Temporarily removes any auth overrides set by the session-scoped `client`
+    fixture, then restores them after the test completes.
+    """
+    def _db_override():
+        db = _SessionFactory()
+        try:
+            yield db
+        finally:
+            db.close()
+
+    saved_auth = app.dependency_overrides.pop(get_current_active_user, None)
+    saved_admin = app.dependency_overrides.pop(require_admin, None)
+    app.dependency_overrides[get_db] = _db_override
+
+    with TestClient(app, raise_server_exceptions=False) as c:
+        yield c
+
+    app.dependency_overrides.pop(get_db, None)
+    if saved_auth is not None:
+        app.dependency_overrides[get_current_active_user] = saved_auth
+    if saved_admin is not None:
+        app.dependency_overrides[require_admin] = saved_admin
+
+
+@pytest.fixture
 def db():
     """
     Function-scoped raw DB session for inserting and cleaning up test data directly.

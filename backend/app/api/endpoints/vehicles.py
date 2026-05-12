@@ -16,6 +16,20 @@ router = APIRouter()
 # Schemas
 # --------------------------------------------------------------------------
 
+class VehicleOut(BaseModel):
+    id: str
+    name: str
+    category: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
+    weight: Optional[float] = None
+    length: Optional[int] = None
+    turning_diameter_track: Optional[int] = None
+    turning_diameter_clearance: Optional[int] = None
+    stabilization_width: Optional[int] = None
+    created_at: Optional[str] = None
+
+
 class VehicleBody(BaseModel):
     name: str
     category: Optional[str] = None
@@ -56,13 +70,13 @@ def _to_dict(v: TargetVehicle) -> dict:
 # Endpoints
 # --------------------------------------------------------------------------
 
-@router.get("/", response_model=list, dependencies=[Depends(get_current_active_user)])
+@router.get("/", response_model=list[VehicleOut], dependencies=[Depends(get_current_active_user)])
 def list_vehicles(db: Session = Depends(get_db)):
     vehicles = db.query(TargetVehicle).order_by(TargetVehicle.name).all()
     return [_to_dict(v) for v in vehicles]
 
 
-@router.post("/", response_model=dict, status_code=201, dependencies=[Depends(require_admin)])
+@router.post("/", response_model=VehicleOut, status_code=201, dependencies=[Depends(require_admin)])
 def create_vehicle(body: VehicleBody, db: Session = Depends(get_db)):
     vehicle = TargetVehicle(**body.model_dump())
     db.add(vehicle)
@@ -71,7 +85,7 @@ def create_vehicle(body: VehicleBody, db: Session = Depends(get_db)):
     return _to_dict(vehicle)
 
 
-@router.put("/{vehicle_id}", response_model=dict, dependencies=[Depends(require_admin)])
+@router.put("/{vehicle_id}", response_model=VehicleOut, dependencies=[Depends(require_admin)])
 def update_vehicle(vehicle_id: UUID, body: VehicleBody, db: Session = Depends(get_db)):
     vehicle = db.query(TargetVehicle).filter(TargetVehicle.id == vehicle_id).first()
     if not vehicle:
