@@ -7,12 +7,13 @@ import {
   TableHead, TableCell,
 } from "../components/ui/table";
 import apiClient from "../lib/api";
-import StationFormModal, {
+import StationFormModal from "../components/StationFormModal";
+import {
   STATION_TYPES,
   EMPTY_FORM,
   toFormState,
   type FormState,
-} from "../components/StationFormModal";
+} from "../components/stationFormTypes";
 
 interface StationRecord {
   id: string;

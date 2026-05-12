@@ -2,14 +2,15 @@ import { useEffect, useState } from "react";
 import { Pencil, Trash2, Plus, Sparkles, Loader2 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import AIImportModal, { type AIVehicleData } from "../components/vehicles/AIImportModal";
-import VehicleFormModal, {
+import VehicleFormModal from "../components/vehicles/VehicleFormModal";
+import {
   CATEGORIES,
   EMPTY_FORM,
   toFormState,
   parseMetresToCm,
   parseOptionalFloat,
   type FormState,
-} from "../components/vehicles/VehicleFormModal";
+} from "../components/vehicles/vehicleFormTypes";
 import {
   Card,
   CardHeader,
