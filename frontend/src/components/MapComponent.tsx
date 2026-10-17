@@ -14,6 +14,7 @@ import { Loader2 } from "lucide-react";
 import ObstacleLayer, { type ObstacleFeature } from "./ObstacleLayer";
 import apiClient from "../lib/api";
 import { roadName } from "../lib/utils";
+import { BASE_TILES } from "../lib/tiles";
 
 export interface SegmentData {
   segment_id: string;
@@ -235,10 +236,7 @@ export default function MapComponent({
       <BboxLoader selectedDate={selectedDate} sessionId={sessionId} onData={handleData} onLoading={setIsLoading} />
       <RoutingClickHandler enabled={routingMode} onClick={onRouteMapClick} />
 
-      <TileLayer
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-      />
+      <TileLayer attribution={BASE_TILES.attribution} url={BASE_TILES.url} />
 
       {/* Road network */}
       {geoJsonData && (

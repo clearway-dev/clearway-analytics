@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import type { Marker as LeafletMarker } from "leaflet";
 import L from "leaflet";
+import { BASE_TILES } from "../lib/tiles";
 
 export interface MapPosition {
   lat: number;
@@ -114,10 +115,7 @@ export default function StationMapPicker({
         style={{ cursor: "crosshair" }}
         zoomControl
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer attribution={BASE_TILES.attribution} url={BASE_TILES.url} />
         <FlyToController target={flyTarget} />
         <DraggableMarker position={position} onChange={onChange} />
       </MapContainer>

@@ -53,6 +53,7 @@ jobs:
           tags: ${{ env.REGISTRY }}/${{ env.OWNER_LOWER }}/clearway-frontend:latest
           build-args: |
             VITE_API_URL=https://api.clearway.zephyron.tech
+            VITE_CARTO_API_KEY=${{ secrets.CARTO_API_KEY }}
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.OWNER_LOWER }}/clearway-frontend:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.OWNER_LOWER }}/clearway-frontend:buildcache,mode=max
 

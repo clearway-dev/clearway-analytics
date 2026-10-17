@@ -5,6 +5,7 @@ import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import type { LatLngTuple } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import apiClient from "../lib/api";
+import { BASE_TILES } from "../lib/tiles";
 
 interface CoverageProperties {
   id: string;
@@ -102,10 +103,7 @@ export default function CoverageMap({ date }: CoverageMapProps) {
         scrollWheelZoom={true}
         dragging={true}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer attribution={BASE_TILES.attribution} url={BASE_TILES.url} />
         {geoJsonData && (
           <GeoJSON key={date ?? "alltime"} data={geoJsonData} style={styleFeature} />
         )}

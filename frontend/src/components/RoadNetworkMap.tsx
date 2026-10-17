@@ -5,6 +5,7 @@ import type { GeoJsonObject, Feature, Geometry } from "geojson";
 import apiClient from "../lib/api";
 import { roadName } from "../lib/utils";
 import { PASSABILITY_THRESHOLD_M } from "../lib/constants";
+import { BASE_TILES } from "../lib/tiles";
 
 interface RoadProperties {
   name: string | null;
@@ -107,10 +108,7 @@ export default function RoadNetworkMap() {
         zoom={15}
         style={{ height: "100%", width: "100%" }}
       >
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <TileLayer attribution={BASE_TILES.attribution} url={BASE_TILES.url} />
         <MapEvents onMoveEnd={fetchRoads} />
         {roads && (
           <GeoJSON
