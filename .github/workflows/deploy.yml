@@ -3,6 +3,7 @@ name: CD Production
 on:
   push:
     branches: [ "main" ]
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
@@ -81,6 +82,7 @@ jobs:
           envs: GITHUB_TOKEN,GITHUB_ACTOR,GITHUB_REPOSITORY_OWNER
           command_timeout: 20m
           script: |
+            set -e
             cd /home/vandl/clearway
 
             export GITHUB_REPOSITORY_OWNER=$(echo "$GITHUB_REPOSITORY_OWNER" | tr '[:upper:]' '[:lower:]')
